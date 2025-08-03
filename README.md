@@ -64,8 +64,8 @@ Once running, visit:
 
 ### User Management (Private Topics)
 - `GET /topic/{id}/users` - View topic access list and votes (creator only)
-- `POST /topic/{id}/users` - Add users to private topic access list
-- `DELETE /topic/{id}/users` - Remove users from access list (and their votes)
+- `POST /topic/{id}/users` - Add users to private topic access list (creator only)
+- `DELETE /topic/{id}/users` - Remove users from access list and their votes (creator only)
 
 ## Usage Examples
 
