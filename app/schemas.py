@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator
 from typing import List, Optional, Dict
 from datetime import datetime
+from enum import Enum
 
 class UserCreate(BaseModel):
     username: str
@@ -15,6 +16,7 @@ class TopicCreate(BaseModel):
     answers: List[str]
     is_public: bool = True
     allowed_users: Optional[List[str]] = None  # List of usernames
+    tags: Optional[List[str]] = []  # List of tags for categorization
     
     @field_validator('answers')
     @classmethod
@@ -38,6 +40,7 @@ class TopicResponse(BaseModel):
     created_at: datetime
     total_votes: int
     vote_breakdown: Dict[str, int]
+    tags: List[str] = []
     
     class Config:
         from_attributes = True
@@ -65,3 +68,31 @@ class UserManagementResponse(BaseModel):
     not_found_users: Optional[List[str]] = []
     already_added_users: Optional[List[str]] = []
     votes_removed: Optional[int] = 0
+
+# Topic Discovery & Search Schemas
+class SortOption(str, Enum):
+    popular = "popular"      # Most votes total
+    recent = "recent"        # Most recently created
+    votes = "votes"          # Most votes (alias for popular)
+
+class TopicSummary(BaseModel):
+    """Lightweight topic info for search results"""
+    id: int
+    title: str
+    share_code: str
+    created_at: datetime
+    total_votes: int
+    tags: List[str] = []
+    creator_username: str
+    
+    class Config:
+        from_attributes = True
+
+class TopicsSearchResponse(BaseModel):
+    """Paginated response for topic search"""
+    topics: List[TopicSummary]
+    total: int
+    page: int
+    limit: int
+    has_next: bool
+    has_prev: bool

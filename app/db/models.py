@@ -20,10 +20,11 @@ class Topic(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     created_by = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)  # Add index for sorting
     answers = Column(JSON)  # List of available answers
-    is_public = Column(Boolean, default=True)
+    is_public = Column(Boolean, default=True, index=True)  # Add index for filtering public topics
     share_code = Column(String, unique=True, index=True)  # Encrypted share code
+    tags = Column(JSON, default=list)  # List of tags for categorization and search
     
     votes = relationship("Vote", back_populates="topic")
     creator = relationship("User", back_populates="created_topics")
