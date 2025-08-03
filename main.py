@@ -4,7 +4,13 @@ from app.config.settings import settings
 from app.db.database import create_tables
 from app.api.routes import router
 
-app = FastAPI(title=settings.API_TITLE, version=settings.API_VERSION)
+app = FastAPI(
+    title=settings.API_TITLE, 
+    version=settings.API_VERSION,
+    swagger_ui_parameters={
+        "persistAuthorization": True  # Keep auth token across page refreshes
+    }
+)
 
 app.include_router(router)
 
