@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Boolean, JSON
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.database import Base
 
 class User(Base):
@@ -9,7 +9,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     votes = relationship("Vote", back_populates="user")
     created_topics = relationship("Topic", back_populates="creator")
@@ -20,7 +20,7 @@ class Topic(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     created_by = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     answers = Column(JSON)  # List of available answers
     is_public = Column(Boolean, default=True)
     share_code = Column(String, unique=True, index=True)  # Encrypted share code
@@ -35,7 +35,7 @@ class TopicAccess(Base):
     id = Column(Integer, primary_key=True, index=True)
     topic_id = Column(Integer, ForeignKey("topics.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     __table_args__ = (UniqueConstraint('topic_id', 'user_id', name='unique_topic_user_access'),)
     
@@ -49,7 +49,7 @@ class Vote(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     topic_id = Column(Integer, ForeignKey("topics.id"))
     choice = Column(String)  # Selected answer from topic's answers list
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     __table_args__ = (UniqueConstraint('user_id', 'topic_id', name='unique_user_topic_vote'),)
     
