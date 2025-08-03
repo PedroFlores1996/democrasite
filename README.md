@@ -6,6 +6,7 @@ A FastAPI-based democratic voting platform that allows users to create topics wi
 
 - **Custom Topics**: Create topics with 1-1000 custom answers (not just Yes/No)
 - **Access Control**: Public topics or private topics with user permissions
+- **User Management**: Topic creators can manage access lists for private topics
 - **JWT Authentication**: Secure user registration and login
 - **RESTful API**: Clean REST endpoints for all operations
 - **Interactive CLI**: Command-line interface for easy testing and interaction
@@ -34,11 +35,13 @@ pip install -r requirements.txt
 # Start the FastAPI server
 python3 main.py
 
-# Or use the interactive CLI
+# In a separate terminal, use the interactive CLI
 python3 cli.py
 ```
 
 The API will be available at `http://localhost:8000`
+
+> **Note**: The CLI connects to the server, so make sure the server is running first.
 
 ### API Documentation
 
@@ -53,15 +56,20 @@ Once running, visit:
 - `POST /login` - Login existing user
 
 ### Topics
-- `POST /topics` - Create a new topic
+- `POST /topics` - Create a new topic (public or private)
 - `GET /topic/{id}` - Get topic details and vote results
 
 ### Voting
-- `POST /topic/{id}/vote` - Vote on a topic
+- `POST /topic/{id}/votes` - Vote on a topic
+
+### User Management (Private Topics)
+- `GET /topic/{id}/users` - View topic access list and votes (creator only)
+- `POST /topic/{id}/users/add` - Add users to private topic access list
+- `POST /topic/{id}/users/remove` - Remove users from access list (and their votes)
 
 ## Usage Examples
 
-### Creating a Topic
+### Creating a Public Topic
 ```json
 POST /topics
 {
@@ -71,11 +79,30 @@ POST /topics
 }
 ```
 
+### Creating a Private Topic
+```json
+POST /topics
+{
+  "title": "Team Pizza Preference",
+  "answers": ["Margherita", "Pepperoni", "Hawaiian"],
+  "is_public": false,
+  "allowed_users": ["alice", "bob", "charlie"]
+}
+```
+
 ### Voting
 ```json
-POST /topic/1/vote
+POST /topic/1/votes
 {
   "choice": "Python"
+}
+```
+
+### Managing Users (Private Topics)
+```json
+POST /topic/1/users/add
+{
+  "usernames": ["dave", "eve"]
 }
 ```
 
@@ -88,24 +115,43 @@ python3 cli.py
 ```
 
 Features:
-- User registration and login
-- Topic creation with guided prompts
+- User registration and login with persistent sessions
+- Topic creation with guided prompts (public/private)
 - Voting with answer validation
-- View topic results
-- Server management
+- View topic results and statistics
+- **User Management**: Add/remove users from private topics
+- Comprehensive error handling and user feedback
+
+### CLI Menu Options:
+1. **Register** - Create new account (auto-login)
+2. **Login** - Sign into existing account
+3. **Logout** - Clear session
+4. **Create topic** - Interactive topic creation
+5. **Vote on topic** - Cast votes with validation
+6. **View topic** - See results and details
+7. **Manage topic users** - Add/remove users (private topics only)
+8. **Exit** - Quit application
 
 ## Development
 
 ### Running Tests
 ```bash
 # Run all tests
-python -m pytest tests/ -v
+python3 -m pytest tests/ -v
 
 # Run specific test
-python -m pytest tests/test_topics.py::test_create_topic_success -v
+python3 -m pytest tests/test_topics.py::test_create_topic_success -v
 
 # VS Code: Use Test Explorer sidebar for debugging
 ```
+
+### Key Features Tested:
+- Topic creation (public/private with validation)
+- Voting system with choice validation  
+- User authentication and authorization
+- Access control for private topics
+- User management operations
+- Data integrity and cascade operations
 
 ### Database
 - Uses SQLite (`democrasite.db`)
