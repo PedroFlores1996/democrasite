@@ -48,3 +48,20 @@ class VoteSubmit(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class UserManagement(BaseModel):
+    usernames: List[str]
+    
+    @field_validator('usernames')
+    @classmethod
+    def validate_usernames(cls, v):
+        if not v:
+            raise ValueError('At least one username is required')
+        return v
+
+class UserManagementResponse(BaseModel):
+    added_users: Optional[List[str]] = []
+    removed_users: Optional[List[str]] = []
+    not_found_users: Optional[List[str]] = []
+    already_added_users: Optional[List[str]] = []
+    votes_removed: Optional[int] = 0

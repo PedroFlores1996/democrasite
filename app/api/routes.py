@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
-from app.api.schemas import UserCreate, UserLogin, TopicCreate, VoteSubmit, Token, TopicResponse
+from app.api.schemas import UserCreate, UserLogin, TopicCreate, VoteSubmit, Token, TopicResponse, UserManagement, UserManagementResponse
 from app.auth.utils import (
     verify_password, 
     get_password_hash, 
@@ -75,7 +75,7 @@ def create_topic(
     
     return {"id": db_topic.id, "title": db_topic.title, "created_at": db_topic.created_at}
 
-@router.post("/topic/{topic_id}/vote")
+@router.post("/topic/{topic_id}/votes")
 def submit_vote(
     topic_id: int,
     vote: VoteSubmit, 
@@ -149,35 +149,157 @@ def get_topic(
         vote_breakdown=vote_breakdown
     )
 
-@router.get("/topics/{topic_id}/results")
-def get_vote_results(
-    topic_id: int, 
-    current_user: User = Depends(get_current_user), 
+@router.post("/topic/{topic_id}/users/add", response_model=UserManagementResponse)
+def add_users_to_topic(
+    topic_id: int,
+    user_management: UserManagement,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Add users to a private topic's access list"""
     topic = db.query(Topic).filter(Topic.id == topic_id).first()
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
     
-    # Check access permissions
-    if not topic.is_public:
+    # Only topic creator can manage users
+    if topic.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Only topic creator can manage user access")
+    
+    # Only private topics have access lists
+    if topic.is_public:
+        raise HTTPException(status_code=400, detail="Cannot add users to public topics - they can vote freely")
+    
+    added_users = []
+    not_found_users = []
+    already_added_users = []
+    
+    for username in user_management.usernames:
+        # Check if user exists
+        user = db.query(User).filter(User.username == username).first()
+        if not user:
+            not_found_users.append(username)
+            continue
+        
+        # Check if user already has access
+        existing_access = db.query(TopicAccess).filter(
+            TopicAccess.topic_id == topic_id,
+            TopicAccess.user_id == user.id
+        ).first()
+        
+        if existing_access:
+            already_added_users.append(username)
+            continue
+        
+        # Add user access
+        access = TopicAccess(topic_id=topic_id, user_id=user.id)
+        db.add(access)
+        added_users.append(username)
+    
+    db.commit()
+    
+    return UserManagementResponse(
+        added_users=added_users,
+        not_found_users=not_found_users,
+        already_added_users=already_added_users
+    )
+
+@router.post("/topic/{topic_id}/users/remove", response_model=UserManagementResponse)
+def remove_users_from_topic(
+    topic_id: int,
+    user_management: UserManagement,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Remove users from topic access list and their votes"""
+    topic = db.query(Topic).filter(Topic.id == topic_id).first()
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    
+    # Only topic creator can manage users
+    if topic.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Only topic creator can manage users")
+    
+    # Only private topics have access lists
+    if topic.is_public:
+        raise HTTPException(status_code=400, detail="Cannot remove users from public topics")
+    
+    removed_users = []
+    not_found_users = []
+    votes_removed = 0
+    
+    for username in user_management.usernames:
+        # Check if user exists
+        user = db.query(User).filter(User.username == username).first()
+        if not user:
+            not_found_users.append(username)
+            continue
+        
+        # Remove access record
         access = db.query(TopicAccess).filter(
             TopicAccess.topic_id == topic_id,
-            TopicAccess.user_id == current_user.id
+            TopicAccess.user_id == user.id
         ).first()
-        if not access and topic.created_by != current_user.id:
-            raise HTTPException(status_code=403, detail="Access denied to this private topic")
+        
+        if access:
+            db.delete(access)
+            removed_users.append(username)
+        
+        # Remove user's votes on this topic
+        user_votes = db.query(Vote).filter(
+            Vote.topic_id == topic_id,
+            Vote.user_id == user.id
+        ).all()
+        
+        for vote in user_votes:
+            db.delete(vote)
+            votes_removed += 1
     
-    # Get vote breakdown for all answers
+    db.commit()
+    
+    return UserManagementResponse(
+        removed_users=removed_users,
+        not_found_users=not_found_users,
+        votes_removed=votes_removed
+    )
+
+@router.get("/topic/{topic_id}/users")
+def get_topic_users(
+    topic_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get list of users who have access to the topic"""
+    topic = db.query(Topic).filter(Topic.id == topic_id).first()
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    
+    # Only topic creator can view user access list
+    if topic.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Only topic creator can view user access list")
+    
+    # Only private topics have access lists
+    if topic.is_public:
+        raise HTTPException(status_code=400, detail="Public topics don't have access lists - anyone can vote")
+    
+    # Get users with access
+    access_records = db.query(TopicAccess).filter(TopicAccess.topic_id == topic_id).all()
+    user_ids = [access.user_id for access in access_records]
+    users = db.query(User).filter(User.id.in_(user_ids)).all()
+    
+    # Also get votes from allowed users
     votes = db.query(Vote).filter(Vote.topic_id == topic_id).all()
-    vote_breakdown = {}
-    for answer in topic.answers:
-        vote_breakdown[answer] = sum(1 for vote in votes if vote.choice == answer)
+    user_votes = {}
+    for vote in votes:
+        username = next((user.username for user in users if user.id == vote.user_id), None)
+        if username:
+            user_votes[username] = vote.choice
     
     return {
         "topic_id": topic_id,
         "topic_title": topic.title,
-        "results": vote_breakdown
+        "creator": topic.creator.username,
+        "allowed_users": [user.username for user in users],
+        "vote_details": user_votes
     }
 
 @router.get("/")

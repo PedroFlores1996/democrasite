@@ -68,15 +68,6 @@ class DemocrasiteCLI:
             print(f"❌ Request failed: {e}")
             return {}
 
-    def start_server(self):
-        """Start the FastAPI server"""
-        print("🚀 Starting Democrasite server...")
-        try:
-            subprocess.run([sys.executable, "main.py"], check=True)
-        except KeyboardInterrupt:
-            print("\n🛑 Server stopped")
-        except Exception as e:
-            print(f"❌ Failed to start server: {e}")
 
     def register(self):
         """Register a new user"""
@@ -200,7 +191,7 @@ class DemocrasiteCLI:
                 return
 
         data = {"choice": choice}
-        result = self.make_request("POST", f"/topic/{topic_id}/vote", data)
+        result = self.make_request("POST", f"/topic/{topic_id}/votes", data)
 
         if result:
             print("✅ Vote submitted successfully!")
@@ -234,6 +225,114 @@ class DemocrasiteCLI:
         else:
             print("❌ Failed to get topic details")
 
+    def manage_topic_users(self):
+        """Manage users for a private topic"""
+        if not self.token:
+            print("❌ Please login first")
+            return
+
+        print("\n👥 Manage Topic Users")
+        topic_id = input("Topic ID: ")
+        
+        try:
+            topic_id = int(topic_id)
+        except ValueError:
+            print("❌ Invalid topic ID")
+            return
+
+        print("\nUser Management Options:")
+        print("1. View allowed users")
+        print("2. Add users to access list")
+        print("3. Remove users from access list")
+        
+        choice = input("Choose option (1-3): ").strip()
+        
+        if choice == "1":
+            self._view_topic_users(topic_id)
+        elif choice == "2":
+            self._add_topic_users(topic_id)
+        elif choice == "3":
+            self._remove_topic_users(topic_id)
+        else:
+            print("❌ Invalid choice")
+
+    def _view_topic_users(self, topic_id):
+        """View users who have access to a topic"""
+        result = self.make_request("GET", f"/topic/{topic_id}/users")
+        
+        if result:
+            print(f"\n📋 Topic: {result.get('topic_title', 'Unknown')}")
+            print(f"Creator: {result.get('creator', 'Unknown')}")
+            
+            allowed_users = result.get('allowed_users', [])
+            vote_details = result.get('vote_details', {})
+            
+            if allowed_users:
+                print(f"\nAllowed users ({len(allowed_users)}):")
+                for user in allowed_users:
+                    vote_choice = vote_details.get(user, 'Not voted')
+                    print(f"  • {user}: {vote_choice}")
+            else:
+                print("\nNo users have access")
+        else:
+            print("❌ Failed to get user list")
+
+    def _add_topic_users(self, topic_id):
+        """Add users to topic access list"""
+        print("Enter usernames to add (comma-separated):")
+        usernames_input = input("Usernames: ")
+        
+        if not usernames_input.strip():
+            print("❌ No usernames provided")
+            return
+        
+        usernames = [u.strip() for u in usernames_input.split(',')]
+        data = {"usernames": usernames}
+        
+        result = self.make_request("POST", f"/topic/{topic_id}/users/add", data)
+        
+        if result:
+            print("\n📊 Add Users Results:")
+            
+            if result.get("added_users"):
+                print(f"✅ Added users: {', '.join(result['added_users'])}")
+            
+            if result.get("already_added_users"):
+                print(f"ℹ️  Already had access: {', '.join(result['already_added_users'])}")
+            
+            if result.get("not_found_users"):
+                print(f"❌ Users not found: {', '.join(result['not_found_users'])}")
+        else:
+            print("❌ Failed to add users")
+
+    def _remove_topic_users(self, topic_id):
+        """Remove users from topic access list"""
+        print("Remove users from access list (also removes their votes):")
+        usernames_input = input("Usernames (comma-separated): ")
+        
+        if not usernames_input.strip():
+            print("❌ No usernames provided")
+            return
+        
+        usernames = [u.strip() for u in usernames_input.split(',')]
+        data = {"usernames": usernames}
+        
+        result = self.make_request("POST", f"/topic/{topic_id}/users/remove", data)
+        
+        if result:
+            print("\n📊 User Removal Results:")
+            
+            if result.get("removed_users"):
+                print(f"✅ Removed users: {', '.join(result['removed_users'])}")
+            
+            if result.get("votes_removed", 0) > 0:
+                print(f"🗳️  Votes removed: {result['votes_removed']}")
+            
+            if result.get("not_found_users"):
+                print(f"❌ Users not found: {', '.join(result['not_found_users'])}")
+        else:
+            print("❌ Failed to remove users")
+
     def show_menu(self):
         """Show main menu"""
         print("\n" + "=" * 50)
@@ -246,13 +345,13 @@ class DemocrasiteCLI:
             print("❌ Not logged in")
 
         print("\nCommands:")
-        print("1. Start server")
-        print("2. Register")
-        print("3. Login")
-        print("4. Logout")
-        print("5. Create topic")
-        print("6. Vote on topic")
-        print("7. View topic")
+        print("1. Register")
+        print("2. Login")
+        print("3. Logout")
+        print("4. Create topic")
+        print("5. Vote on topic")
+        print("6. View topic")
+        print("7. Manage topic users")
         print("8. Exit")
         print("-" * 50)
 
@@ -263,19 +362,19 @@ class DemocrasiteCLI:
             choice = input("Enter choice (1-8): ").strip()
 
             if choice == "1":
-                self.start_server()
-            elif choice == "2":
                 self.register()
-            elif choice == "3":
+            elif choice == "2":
                 self.login()
-            elif choice == "4":
+            elif choice == "3":
                 self.logout()
-            elif choice == "5":
+            elif choice == "4":
                 self.create_topic()
-            elif choice == "6":
+            elif choice == "5":
                 self.vote_on_topic()
-            elif choice == "7":
+            elif choice == "6":
                 self.view_topic()
+            elif choice == "7":
+                self.manage_topic_users()
             elif choice == "8":
                 print("👋 Goodbye!")
                 break

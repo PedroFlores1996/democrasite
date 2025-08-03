@@ -114,7 +114,7 @@ def test_vote_on_topic_success(client: TestClient, auth_headers, sample_topic_da
     
     # Vote on the topic
     vote_data = {"choice": "Option A"}
-    response = client.post(f"/topic/{topic_id}/vote", json=vote_data, headers=auth_headers)
+    response = client.post(f"/topic/{topic_id}/votes", json=vote_data, headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -138,7 +138,7 @@ def test_vote_invalid_choice(client: TestClient, auth_headers, sample_topic_data
     
     # Vote with invalid choice
     vote_data = {"choice": "Invalid Option"}
-    response = client.post(f"/topic/{topic_id}/vote", json=vote_data, headers=auth_headers)
+    response = client.post(f"/topic/{topic_id}/votes", json=vote_data, headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
