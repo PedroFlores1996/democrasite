@@ -64,8 +64,8 @@ Once running, visit:
 
 ### User Management (Private Topics)
 - `GET /topic/{id}/users` - View topic access list and votes (creator only)
-- `POST /topic/{id}/users/add` - Add users to private topic access list
-- `POST /topic/{id}/users/remove` - Remove users from access list (and their votes)
+- `POST /topic/{id}/users` - Add users to private topic access list
+- `DELETE /topic/{id}/users` - Remove users from access list (and their votes)
 
 ## Usage Examples
 
@@ -100,9 +100,16 @@ POST /topic/1/votes
 
 ### Managing Users (Private Topics)
 ```json
-POST /topic/1/users/add
+POST /topic/1/users
 {
   "usernames": ["dave", "eve"]
+}
+```
+
+```json
+DELETE /topic/1/users
+{
+  "usernames": ["alice"]
 }
 ```
 

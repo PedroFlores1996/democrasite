@@ -149,7 +149,7 @@ def get_topic(
         vote_breakdown=vote_breakdown
     )
 
-@router.post("/topic/{topic_id}/users/add", response_model=UserManagementResponse)
+@router.post("/topic/{topic_id}/users", response_model=UserManagementResponse)
 def add_users_to_topic(
     topic_id: int,
     user_management: UserManagement,
@@ -203,7 +203,7 @@ def add_users_to_topic(
         already_added_users=already_added_users
     )
 
-@router.post("/topic/{topic_id}/users/remove", response_model=UserManagementResponse)
+@router.delete("/topic/{topic_id}/users", response_model=UserManagementResponse)
 def remove_users_from_topic(
     topic_id: int,
     user_management: UserManagement,

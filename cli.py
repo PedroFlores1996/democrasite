@@ -53,6 +53,8 @@ class DemocrasiteCLI:
                 response = requests.get(url, headers=self.headers())
             elif method.upper() == "POST":
                 response = requests.post(url, headers=self.headers(), json=data)
+            elif method.upper() == "DELETE":
+                response = requests.delete(url, headers=self.headers(), json=data)
             else:
                 raise ValueError(f"Unsupported method: {method}")
 
@@ -289,7 +291,7 @@ class DemocrasiteCLI:
         usernames = [u.strip() for u in usernames_input.split(',')]
         data = {"usernames": usernames}
         
-        result = self.make_request("POST", f"/topic/{topic_id}/users/add", data)
+        result = self.make_request("POST", f"/topic/{topic_id}/users", data)
         
         if result:
             print("\n📊 Add Users Results:")
@@ -317,7 +319,7 @@ class DemocrasiteCLI:
         usernames = [u.strip() for u in usernames_input.split(',')]
         data = {"usernames": usernames}
         
-        result = self.make_request("POST", f"/topic/{topic_id}/users/remove", data)
+        result = self.make_request("DELETE", f"/topic/{topic_id}/users", data)
         
         if result:
             print("\n📊 User Removal Results:")
