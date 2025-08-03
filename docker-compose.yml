@@ -1,0 +1,36 @@
+
+services:
+  democrasite:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for development (comment out for production)
+      # - .:/app  # Commented out to avoid permission issues
+      # Persist SQLite database in a directory
+      - democrasite_db:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///./data/democrasite.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a database service for production
+  # postgres:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: democrasite
+  #     POSTGRES_USER: democrasite
+  #     POSTGRES_PASSWORD: democrasite
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+volumes:
+  democrasite_db:

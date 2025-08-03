@@ -32,6 +32,21 @@ pip install -r requirements.txt
 
 ### Running the Application
 
+#### Option 1: Docker (Recommended)
+
+```bash
+# Build and start with docker-compose
+docker-compose up --build
+
+# Or run in background
+docker-compose up -d --build
+
+# Stop the application
+docker-compose down
+```
+
+#### Option 2: Local Development
+
 ```bash
 # Start the FastAPI server
 python3 main.py
@@ -43,6 +58,22 @@ python3 cli.py
 The API will be available at `http://localhost:8000`
 
 > **Note**: The CLI connects to the server, so make sure the server is running first.
+
+#### Docker Commands
+
+```bash
+# Build the image
+docker build -t democrasite .
+
+# Run container
+docker run -p 8000:8000 -v $(pwd)/democrasite.db:/app/democrasite.db democrasite
+
+# View logs
+docker-compose logs -f
+
+# Access container shell
+docker-compose exec democrasite bash
+```
 
 ### API Documentation
 
