@@ -1,7 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func, desc, or_
+from typing import Optional
 
-from app.schemas import TopicCreate, VoteSubmit, TopicResponse, UserManagement, UserManagementResponse
+from app.schemas import (
+    TopicCreate, VoteSubmit, TopicResponse, UserManagement, UserManagementResponse,
+    TopicsSearchResponse, TopicSummary, SortOption
+)
 from app.auth.utils import get_current_user
 from app.db.database import get_db
 from app.db.models import User, Topic, Vote, TopicAccess
@@ -19,7 +24,8 @@ def create_topic(
         title=topic.title, 
         created_by=current_user.id,
         answers=topic.answers,
-        is_public=topic.is_public
+        is_public=topic.is_public,
+        tags=topic.tags or []
     )
     db.add(db_topic)
     db.commit()
@@ -46,6 +52,94 @@ def create_topic(
         "title": db_topic.title, 
         "created_at": db_topic.created_at
     }
+
+@router.get("/topics", response_model=TopicsSearchResponse)
+def search_topics(
+    page: int = Query(1, ge=1, description="Page number (starting from 1)"),
+    limit: int = Query(20, ge=1, le=100, description="Number of results per page (max 100)"),
+    title: Optional[str] = Query(None, description="Search in topic titles"),
+    tags: Optional[str] = Query(None, description="Comma-separated tags to filter by"),
+    sort: SortOption = Query(SortOption.popular, description="Sort order"),
+    _: User = Depends(get_current_user),  # Require auth but don't use user
+    db: Session = Depends(get_db)
+):
+    """
+    Search and discover public topics with filtering and pagination.
+    
+    - **page**: Page number (starts at 1)
+    - **limit**: Results per page (1-100, default 20)
+    - **title**: Search for topics containing this text in title
+    - **tags**: Filter by tags (comma-separated, e.g., "sports,politics")
+    - **sort**: Sort by popularity (total votes), recent (newest first), or votes (alias for popular)
+    """
+    
+    # Start with base query for public topics only
+    query = db.query(Topic).filter(Topic.is_public == True)
+    
+    # Add title search filter
+    if title:
+        query = query.filter(Topic.title.ilike(f"%{title}%"))
+    
+    # Add tags filter
+    if tags:
+        tag_list = [tag.strip().lower() for tag in tags.split(",")]
+        # SQLite JSON search - check if any of the provided tags exist in the topic's tags
+        tag_conditions = []
+        for tag in tag_list:
+            tag_conditions.append(func.json_extract(Topic.tags, '$').like(f'%"{tag}"%'))
+        query = query.filter(or_(*tag_conditions))
+    
+    # Add sorting
+    if sort == SortOption.recent:
+        query = query.order_by(desc(Topic.created_at))
+    else:  # popular or votes
+        # Subquery to count votes per topic
+        vote_counts = db.query(
+            Vote.topic_id,
+            func.count(Vote.id).label('vote_count')
+        ).group_by(Vote.topic_id).subquery()
+        
+        query = query.outerjoin(vote_counts, Topic.id == vote_counts.c.topic_id)\
+                    .order_by(desc(func.coalesce(vote_counts.c.vote_count, 0)))
+    
+    # Get total count before pagination
+    total = query.count()
+    
+    # Apply pagination
+    offset = (page - 1) * limit
+    topics_query = query.offset(offset).limit(limit)
+    
+    # Execute query and get results
+    topics = topics_query.all()
+    
+    # Build response objects
+    topic_summaries = []
+    for topic in topics:
+        # Get vote count for this topic
+        vote_count = db.query(func.count(Vote.id)).filter(Vote.topic_id == topic.id).scalar()
+        
+        topic_summaries.append(TopicSummary(
+            id=topic.id,
+            title=topic.title,
+            share_code=topic.share_code,
+            created_at=topic.created_at,
+            total_votes=vote_count,
+            tags=topic.tags or [],
+            creator_username=topic.creator.username
+        ))
+    
+    # Calculate pagination info
+    has_next = (page * limit) < total
+    has_prev = page > 1
+    
+    return TopicsSearchResponse(
+        topics=topic_summaries,
+        total=total,
+        page=page,
+        limit=limit,
+        has_next=has_next,
+        has_prev=has_prev
+    )
 
 @router.post("/topics/{share_code}/votes")
 def submit_vote(
@@ -118,7 +212,8 @@ def get_topic(
         is_public=topic.is_public,
         created_at=topic.created_at,
         total_votes=total_votes,
-        vote_breakdown=vote_breakdown
+        vote_breakdown=vote_breakdown,
+        tags=topic.tags or []
     )
 
 @router.post("/topics/{share_code}/users", response_model=UserManagementResponse)
