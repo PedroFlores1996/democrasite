@@ -91,7 +91,7 @@ class TopicUserService:
     
     def _validate_user_management_permissions(self, topic: Topic, current_user: User):
         """
-        Validate that user can manage topic access
+        Validate that user can manage topic access (admin operation - creator only)
         """
         if topic.created_by != current_user.id:
             raise HTTPException(
@@ -107,7 +107,7 @@ class TopicUserService:
     
     def _validate_view_permissions(self, topic: Topic, current_user: User):
         """
-        Validate that user can view topic access list
+        Validate that user can view topic access list (admin operation - creator only)
         """
         if topic.created_by != current_user.id:
             raise HTTPException(
@@ -246,6 +246,56 @@ class TopicUserService:
                 user_votes[username] = vote.choice
         
         return user_votes
+
+    def delete_topic(
+        self,
+        db: Session,
+        topic: Topic,
+        current_user: User
+    ) -> Dict[str, str]:
+        """
+        Delete a topic and all related data (admin operation - creator only)
+        """
+        # Validate that only creator can delete topic
+        if topic.created_by != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Only topic creator can delete the topic"
+            )
+        
+        # Delete all related data
+        vote_count = self._delete_topic_votes(db, topic.id)
+        access_count = self._delete_topic_access(db, topic.id)
+        
+        # Delete the topic itself
+        db.delete(topic)
+        db.commit()
+        
+        return {
+            "message": f"Topic '{topic.title}' deleted successfully",
+            "votes_deleted": vote_count,
+            "access_records_deleted": access_count
+        }
+    
+    def _delete_topic_votes(self, db: Session, topic_id: int) -> int:
+        """Delete all votes for a topic"""
+        votes = db.query(Vote).filter(Vote.topic_id == topic_id).all()
+        vote_count = len(votes)
+        
+        for vote in votes:
+            db.delete(vote)
+        
+        return vote_count
+    
+    def _delete_topic_access(self, db: Session, topic_id: int) -> int:
+        """Delete all access records for a topic"""
+        access_records = db.query(TopicAccess).filter(TopicAccess.topic_id == topic_id).all()
+        access_count = len(access_records)
+        
+        for access in access_records:
+            db.delete(access)
+        
+        return access_count
 
 
 # Singleton instance

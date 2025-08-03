@@ -132,6 +132,17 @@ def get_topic_users(
     return topic_user_service.get_topic_users(db, topic, current_user)
 
 
+@router.delete("/topics/{share_code}")
+def delete_topic(
+    share_code: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a topic and all related data (creator only)"""
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    return topic_user_service.delete_topic(db, topic, current_user)
+
+
 @router.get("/")
 def read_root():
     return {"message": "Welcome to Democrasite API"}
