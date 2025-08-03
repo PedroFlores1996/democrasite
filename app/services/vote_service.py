@@ -50,7 +50,8 @@ class VoteService:
     
     def _check_voting_permissions(self, db: Session, topic: Topic, current_user: User):
         """
-        Check if user can vote on this topic
+        Check if user can vote on this topic.
+        For private topics, user must be in the allowed users list (which includes creator by default).
         """
         if not topic.is_public:
             access = (
@@ -61,7 +62,7 @@ class VoteService:
                 )
                 .first()
             )
-            if not access and topic.created_by != current_user.id:
+            if not access:
                 raise HTTPException(
                     status_code=403, 
                     detail="Access denied to this private topic"

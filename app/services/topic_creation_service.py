@@ -21,9 +21,13 @@ class TopicCreationService:
         # Create the topic
         db_topic = self._create_topic_record(db, topic_data, current_user)
         
-        # Add allowed users for private topics
-        if not topic_data.is_public and topic_data.allowed_users:
-            self._add_allowed_users(db, db_topic.id, topic_data.allowed_users)
+        # Add allowed users for private topics (always include creator)
+        if not topic_data.is_public:
+            allowed_users = topic_data.allowed_users or []
+            # Always ensure creator is in the allowed users list
+            if current_user.username not in allowed_users:
+                allowed_users.append(current_user.username)
+            self._add_allowed_users(db, db_topic.id, allowed_users)
         
         # Generate and assign share code
         share_code = self._assign_share_code(db, db_topic)
