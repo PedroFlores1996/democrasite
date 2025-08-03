@@ -129,6 +129,14 @@ class UIManager {
         if (targetSection) {
             targetSection.classList.remove('hidden');
             this.currentSection = sectionId;
+            
+            // Refresh topics when navigating to dashboard
+            if (sectionId === 'topicsDashboard' && window.topicsManager && authManager.isAuthenticated) {
+                // Small delay to let the UI settle
+                setTimeout(() => {
+                    topicsManager.loadTopics(topicsManager.searchQuery);
+                }, 100);
+            }
         }
     }
 

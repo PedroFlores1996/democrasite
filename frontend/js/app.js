@@ -69,10 +69,10 @@ class App {
         const urlParams = new URLSearchParams(window.location.search);
         
         // Handle direct topic links
-        const topicId = urlParams.get('topic');
-        if (topicId) {
+        const topicShareCode = urlParams.get('topic');
+        if (topicShareCode) {
             showSection('topicDetail');
-            showTopic(topicId);
+            showTopic(topicShareCode);
             return;
         }
         
@@ -121,7 +121,7 @@ class App {
         setInterval(() => {
             if (uiManager.currentSection === 'topicDetail' && topicsManager.currentTopic) {
                 // Silently refresh the topic data
-                topicsManager.showTopic(topicsManager.currentTopic.id);
+                topicsManager.showTopic(topicsManager.currentTopic.share_code);
             }
         }, 30000);
 
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             container.appendChild(optionDiv);
             
-            // Add remove functionality
+            // Add remove functionality to the new option
             optionDiv.querySelector('.remove-option').addEventListener('click', () => {
                 if (container.children.length > 2) { // Keep at least 2 options
                     optionDiv.remove();
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Remove option buttons (for initial options)
+    // Initialize remove buttons for existing options
     document.querySelectorAll('.remove-option').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const container = document.getElementById('votingOptionsContainer');

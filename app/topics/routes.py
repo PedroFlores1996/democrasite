@@ -84,12 +84,14 @@ def get_topic(
     return TopicResponse(
         id=topic.id,
         title=topic.title,
+        share_code=topic.share_code,
         answers=topic.answers,
         is_public=topic.is_public,
         created_at=topic.created_at,
         total_votes=total_votes,
         vote_breakdown=vote_breakdown,
         tags=topic.tags or [],
+        created_by=topic.creator.username,
     )
 
 

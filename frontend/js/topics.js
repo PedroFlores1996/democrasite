@@ -16,17 +16,23 @@ class TopicsManager {
             }
 
             this.searchQuery = search;
-            this.topics = await api.getTopics(search);
+            const response = await api.getTopics(search);
+            // Extract topics array from the paginated response
+            this.topics = Array.isArray(response) ? response : (response.topics || []);
             this.renderTopics();
         } catch (error) {
             console.error('Error loading topics:', error);
+            console.error('Auth status:', authManager.isAuthenticated);
+            console.error('Token:', localStorage.getItem('authToken'));
             
             // Check if it's an authentication error
             if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                // Clear authentication state and redirect to login
+                authManager.logout();
                 this.renderUnauthenticatedState();
                 showToast('Please log in to view topics', 'warning');
             } else {
-                showToast('Error loading topics', 'error');
+                showToast(`Error loading topics: ${error.message}`, 'error');
                 this.topics = [];
                 this.renderTopics();
             }
@@ -96,7 +102,7 @@ class TopicsManager {
         }
 
         grid.innerHTML = this.topics.map((topic, index) => `
-            <div class="topic-card" onclick="showTopic('${topic.id}')" style="animation-delay: ${index * 0.1}s">
+            <div class="topic-card" onclick="showTopic('${topic.share_code || topic.id}')" style="animation-delay: ${index * 0.1}s">
                 <div class="topic-card-header">
                     <div class="topic-meta">
                         <span class="topic-badge ${topic.is_public ? 'badge-public' : 'badge-private'}">
@@ -115,10 +121,10 @@ class TopicsManager {
                 <div class="topic-footer">
                     <div class="topic-author">
                         <div class="author-avatar">
-                            <span>${this.escapeHtml(topic.created_by).charAt(0).toUpperCase()}</span>
+                            <span>${this.escapeHtml(topic.creator_username).charAt(0).toUpperCase()}</span>
                         </div>
                         <div class="author-info">
-                            <span class="author-name">${this.escapeHtml(topic.created_by)}</span>
+                            <span class="author-name">${this.escapeHtml(topic.creator_username)}</span>
                             <span class="topic-date">${this.formatDate(topic.created_at)}</span>
                         </div>
                     </div>
@@ -126,7 +132,7 @@ class TopicsManager {
                     <div class="topic-stats">
                         <div class="stat-item">
                             <i class="fas fa-poll"></i>
-                            <span>${topic.answers ? topic.answers.length : 0}</span>
+                            <span>${topic.answer_count || 0}</span>
                         </div>
                         <div class="stat-item">
                             <i class="fas fa-vote-yea"></i>
@@ -140,9 +146,9 @@ class TopicsManager {
         `).join('');
     }
 
-    async showTopic(topicId) {
+    async showTopic(shareCode) {
         try {
-            this.currentTopic = await api.getTopic(topicId);
+            this.currentTopic = await api.getTopic(shareCode);
             this.renderTopicDetail();
             showSection('topicDetail');
         } catch (error) {
@@ -155,7 +161,7 @@ class TopicsManager {
         if (!this.currentTopic) return;
 
         document.getElementById('topicTitle').textContent = this.currentTopic.title;
-        document.getElementById('topicDescription').textContent = this.currentTopic.description || 'No description';
+        document.getElementById('topicDescription').textContent = this.currentTopic.description || 'No description provided';
         document.getElementById('topicAuthor').textContent = this.currentTopic.created_by;
         document.getElementById('topicDate').textContent = this.formatDate(this.currentTopic.created_at);
         
@@ -216,14 +222,14 @@ class TopicsManager {
         }
 
         // Render results if available
-        if (this.currentTopic.vote_counts) {
+        if (this.currentTopic.vote_breakdown) {
             this.renderResults();
         }
     }
 
     renderResults() {
         const votingResults = document.getElementById('votingResults');
-        const voteCounts = this.currentTopic.vote_counts;
+        const voteCounts = this.currentTopic.vote_breakdown;
         const totalVotes = this.currentTopic.total_votes || 0;
 
         if (totalVotes === 0) {
@@ -281,11 +287,13 @@ class TopicsManager {
                 return;
             }
 
-            await api.vote(this.currentTopic.id, this.selectedAnswer);
+            await api.vote(this.currentTopic.share_code, this.selectedAnswer);
             showToast('Vote submitted successfully!', 'success');
             
             // Reload topic to get updated results
-            await this.showTopic(this.currentTopic.id);
+            await this.showTopic(this.currentTopic.share_code);
+            
+            // Topics will be refreshed automatically when navigating back to dashboard
         } catch (error) {
             console.error('Error submitting vote:', error);
             showToast(error.message, 'error');
@@ -309,6 +317,17 @@ class TopicsManager {
         const submitBtn = document.querySelector('.btn-vote');
         if (submitBtn) {
             submitBtn.disabled = false;
+        }
+    }
+
+    // Silently refresh topics data to update vote counts
+    async refreshTopicsData() {
+        try {
+            const response = await api.getTopics(this.searchQuery);
+            this.topics = Array.isArray(response) ? response : (response.topics || []);
+        } catch (error) {
+            // Silently fail - don't show error to user for background refresh
+            console.log('Background topics refresh failed:', error);
         }
     }
 
@@ -401,20 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Add voting option
-    document.getElementById('addOptionBtn').addEventListener('click', () => {
-        const container = document.getElementById('votingOptionsContainer');
-        const optionCount = container.children.length + 1;
-        
-        const optionDiv = document.createElement('div');
-        optionDiv.className = 'voting-option-input';
-        optionDiv.innerHTML = `
-            <input type="text" placeholder="Option ${optionCount}" required>
-            <button type="button" class="btn-remove-option" onclick="this.parentElement.remove()">&times;</button>
-        `;
-        
-        container.appendChild(optionDiv);
-    });
+    // Add voting option functionality is handled in app.js to avoid conflicts
 
     // Share topic button
     document.getElementById('shareTopicBtn').addEventListener('click', async () => {
@@ -422,14 +428,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             if (topicsManager.currentTopic.is_public) {
-                // For public topics, just copy the URL
-                const url = `${window.location.origin}${window.location.pathname}?topic=${topicsManager.currentTopic.id}`;
+                // For public topics, just copy the URL with share code
+                const url = `${window.location.origin}${window.location.pathname}?topic=${topicsManager.currentTopic.share_code}`;
                 await navigator.clipboard.writeText(url);
                 showToast('Topic URL copied to clipboard!', 'success');
             } else {
-                // For private topics, get share code
-                const response = await api.getShareCode(topicsManager.currentTopic.id);
-                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${response.share_code}`;
+                // For private topics, use existing share code or get a new one
+                const shareCode = topicsManager.currentTopic.share_code;
+                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${shareCode}`;
                 await navigator.clipboard.writeText(shareUrl);
                 showToast('Share code copied to clipboard!', 'success');
             }
@@ -444,13 +450,32 @@ document.addEventListener('DOMContentLoaded', () => {
 function resetVotingOptions() {
     const container = document.getElementById('votingOptionsContainer');
     container.innerHTML = `
-        <div class="voting-option-input">
-            <input type="text" placeholder="Option 1" required>
-            <button type="button" class="btn-remove-option">&times;</button>
+        <div class="option-item">
+            <div class="input-wrapper">
+                <i class="fas fa-circle option-icon"></i>
+                <input type="text" placeholder="Option 1" required>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm remove-option">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <div class="voting-option-input">
-            <input type="text" placeholder="Option 2" required>
-            <button type="button" class="btn-remove-option">&times;</button>
+        <div class="option-item">
+            <div class="input-wrapper">
+                <i class="fas fa-circle option-icon"></i>
+                <input type="text" placeholder="Option 2" required>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm remove-option">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
     `;
+    
+    // Re-attach remove event listeners for the reset options
+    container.querySelectorAll('.remove-option').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            if (container.children.length > 2) { // Keep at least 2 options
+                e.target.closest('.option-item').remove();
+            }
+        });
+    });
 }

@@ -35,12 +35,14 @@ class TopicCreate(BaseModel):
 class TopicResponse(BaseModel):
     id: int
     title: str
+    share_code: str
     answers: List[str]
     is_public: bool
     created_at: datetime
     total_votes: int
     vote_breakdown: Dict[str, int]
     tags: List[str] = []
+    created_by: str
     
     class Config:
         from_attributes = True
@@ -82,8 +84,10 @@ class TopicSummary(BaseModel):
     share_code: str
     created_at: datetime
     total_votes: int
+    answer_count: int
     tags: List[str] = []
     creator_username: str
+    is_public: bool
     
     class Config:
         from_attributes = True

@@ -125,48 +125,48 @@ class API {
     }
 
     // Topic endpoints
-    async getTopics(search = '', tags = '', limit = 20, skip = 0) {
+    async getTopics(search = '', tags = '', limit = 20, page = 1) {
         const params = new URLSearchParams();
-        if (search) params.append('search', search);
+        if (search) params.append('title', search);  // Backend expects 'title' not 'search'
         if (tags) params.append('tags', tags);
         params.append('limit', limit.toString());
-        params.append('skip', skip.toString());
+        params.append('page', page.toString());      // Backend expects 'page' not 'skip'
         
         const query = params.toString();
         return this.get(`/api/topics${query ? '?' + query : ''}`);
     }
 
-    async getTopic(topicId) {
-        return this.get(`/api/topics/${topicId}`);
+    async getTopic(shareCode) {
+        return this.get(`/api/topics/${shareCode}`);
     }
 
     async createTopic(topicData) {
         return this.post('/api/topics', topicData);
     }
 
-    async deleteTopic(topicId) {
-        return this.delete(`/api/topics/${topicId}`);
+    async deleteTopic(shareCode) {
+        return this.delete(`/api/topics/${shareCode}`);
     }
 
-    async vote(topicId, answer) {
-        return this.post(`/api/topics/${topicId}/vote`, { answer });
+    async vote(shareCode, answer) {
+        return this.post(`/api/topics/${shareCode}/votes`, { choice: answer });
     }
 
-    async getTopicUsers(topicId) {
-        return this.get(`/api/topics/${topicId}/users`);
+    async getTopicUsers(shareCode) {
+        return this.get(`/api/topics/${shareCode}/users`);
     }
 
-    async addTopicUsers(topicId, usernames) {
-        return this.post(`/api/topics/${topicId}/users`, { usernames });
+    async addTopicUsers(shareCode, usernames) {
+        return this.post(`/api/topics/${shareCode}/users`, { usernames });
     }
 
-    async removeTopicUser(topicId, username) {
-        return this.delete(`/api/topics/${topicId}/users/${username}`);
+    async removeTopicUser(shareCode, username) {
+        return this.delete(`/api/topics/${shareCode}/users/${username}`);
     }
 
     // Share code endpoints
-    async getShareCode(topicId) {
-        return this.get(`/api/topics/${topicId}/share-code`);
+    async getShareCode(shareCode) {
+        return this.get(`/api/topics/${shareCode}/share-code`);
     }
 
     async joinByShareCode(shareCode) {

@@ -11,11 +11,14 @@ class AuthManager {
         const token = localStorage.getItem('authToken');
         if (token) {
             try {
-                this.currentUser = await api.getCurrentUser();
+                // Set the token in the API instance first
+                api.setToken(token);
+                const userData = await api.getCurrentUser();
+                this.currentUser = userData;
                 this.isAuthenticated = true;
                 this.updateUI();
             } catch (error) {
-                console.log('Token expired or invalid');
+                console.log('Token expired or invalid:', error.message);
                 this.logout();
             }
         }
@@ -32,7 +35,9 @@ class AuthManager {
 
         try {
             const response = await api.register(username, password);
-            this.currentUser = { username }; // API might return user info
+            // Get user info after successful registration
+            const userData = await api.getCurrentUser();
+            this.currentUser = userData;
             this.isAuthenticated = true;
             this.updateUI();
             return response;
@@ -44,7 +49,9 @@ class AuthManager {
     async login(username, password) {
         try {
             const response = await api.login(username, password);
-            this.currentUser = { username }; // Extract from token or make separate call
+            // Get user info after successful login
+            const userData = await api.getCurrentUser();
+            this.currentUser = userData;
             this.isAuthenticated = true;
             this.updateUI();
             return response;
@@ -58,6 +65,12 @@ class AuthManager {
         this.currentUser = null;
         this.isAuthenticated = false;
         this.updateUI();
+        
+        // Clear any cached data
+        if (window.topicsManager) {
+            topicsManager.topics = [];
+            topicsManager.currentTopic = null;
+        }
         
         // Redirect to command center
         showSection('commandCenter');
@@ -153,7 +166,7 @@ class AuthManager {
     async loadDashboardStats() {
         try {
             // Get topics to calculate stats
-            const topicsData = await api.getTopics('', '', 1000, 0); // Get many topics for stats
+            const topicsData = await api.getTopics('', '', 1000, 1); // Get many topics for stats
             
             // Update stats cards
             const activeTopicsEl = document.querySelector('[data-count="0"]');

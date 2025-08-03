@@ -122,8 +122,10 @@ class TopicSearchService:
                     share_code=topic.share_code,
                     created_at=topic.created_at,
                     total_votes=vote_count,
+                    answer_count=len(topic.answers) if topic.answers else 0,
                     tags=topic.tags or [],
-                    creator_username=topic.creator.username
+                    creator_username=topic.creator.username,
+                    is_public=topic.is_public
                 )
             )
         

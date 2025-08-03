@@ -7,7 +7,8 @@ from app.schemas import UserCreate, UserLogin, Token
 from app.auth.utils import (
     verify_password, 
     get_password_hash, 
-    create_access_token
+    create_access_token,
+    get_current_user
 )
 from app.config.settings import settings
 from app.db.database import get_db
@@ -63,3 +64,8 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         data={"sub": form_data.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/users/me")
+def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current authenticated user information"""
+    return {"username": current_user.username, "id": current_user.id}
