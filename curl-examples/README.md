@@ -47,6 +47,7 @@ TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 | `10_remove_users.sh` | `DELETE /topics/{share_code}/users` | Remove users from topic |
 | `11_search_topics.sh` | `GET /topics` | Search and discover public topics |
 | `12_create_topic_with_tags.sh` | `POST /topics` | Create topics with tags for discovery |
+| `13_delete_topic.sh` | `DELETE /topics/{share_code}` | Delete topic and all related data (creator only) |
 
 ## Usage Examples
 
