@@ -144,8 +144,10 @@ class DemocrasiteCLI:
 
         result = self.make_request("POST", "/topics", data)
         print(result)
-        if result and "id" in result:
-            print(f"✅ Topic created successfully! ID: {result['id']}")
+        if result and "share_code" in result:
+            print(f"✅ Topic created successfully!")
+            print(f"📋 Share code: {result['share_code']}")
+            print(f"🔢 Internal ID: {result['id']}")
         else:
             print("❌ Topic creation failed")
 
@@ -156,16 +158,14 @@ class DemocrasiteCLI:
             return
 
         print("\n🗳️  Vote on Topic")
-        topic_id = input("Topic ID: ")
+        share_code = input("Topic share code: ")
 
-        try:
-            topic_id = int(topic_id)
-        except ValueError:
-            print("❌ Invalid topic ID")
+        if not share_code.strip():
+            print("❌ Share code cannot be empty")
             return
 
         # First get topic details to show available answers
-        topic_result = self.make_request("GET", f"/topic/{topic_id}")
+        topic_result = self.make_request("GET", f"/topic/{share_code}")
         if not topic_result:
             return
 
@@ -193,7 +193,7 @@ class DemocrasiteCLI:
                 return
 
         data = {"choice": choice}
-        result = self.make_request("POST", f"/topic/{topic_id}/votes", data)
+        result = self.make_request("POST", f"/topic/{share_code}/votes", data)
 
         if result:
             print("✅ Vote submitted successfully!")
@@ -203,15 +203,13 @@ class DemocrasiteCLI:
     def view_topic(self):
         """View topic details and results"""
         print("\n👀 View Topic")
-        topic_id = input("Topic ID: ")
+        share_code = input("Topic share code: ")
 
-        try:
-            topic_id = int(topic_id)
-        except ValueError:
-            print("❌ Invalid topic ID")
+        if not share_code.strip():
+            print("❌ Share code cannot be empty")
             return
 
-        result = self.make_request("GET", f"/topic/{topic_id}")
+        result = self.make_request("GET", f"/topic/{share_code}")
 
         if result:
             print(f"\n📊 Topic: {result.get('title', 'Unknown')}")
@@ -234,12 +232,10 @@ class DemocrasiteCLI:
             return
 
         print("\n👥 Manage Topic Users")
-        topic_id = input("Topic ID: ")
+        share_code = input("Topic share code: ")
         
-        try:
-            topic_id = int(topic_id)
-        except ValueError:
-            print("❌ Invalid topic ID")
+        if not share_code.strip():
+            print("❌ Share code cannot be empty")
             return
 
         print("\nUser Management Options:")
@@ -250,17 +246,17 @@ class DemocrasiteCLI:
         choice = input("Choose option (1-3): ").strip()
         
         if choice == "1":
-            self._view_topic_users(topic_id)
+            self._view_topic_users(share_code)
         elif choice == "2":
-            self._add_topic_users(topic_id)
+            self._add_topic_users(share_code)
         elif choice == "3":
-            self._remove_topic_users(topic_id)
+            self._remove_topic_users(share_code)
         else:
             print("❌ Invalid choice")
 
-    def _view_topic_users(self, topic_id):
+    def _view_topic_users(self, share_code):
         """View users who have access to a topic"""
-        result = self.make_request("GET", f"/topic/{topic_id}/users")
+        result = self.make_request("GET", f"/topic/{share_code}/users")
         
         if result:
             print(f"\n📋 Topic: {result.get('topic_title', 'Unknown')}")
@@ -279,7 +275,7 @@ class DemocrasiteCLI:
         else:
             print("❌ Failed to get user list")
 
-    def _add_topic_users(self, topic_id):
+    def _add_topic_users(self, share_code):
         """Add users to topic access list"""
         print("Enter usernames to add (comma-separated):")
         usernames_input = input("Usernames: ")
@@ -291,7 +287,7 @@ class DemocrasiteCLI:
         usernames = [u.strip() for u in usernames_input.split(',')]
         data = {"usernames": usernames}
         
-        result = self.make_request("POST", f"/topic/{topic_id}/users", data)
+        result = self.make_request("POST", f"/topic/{share_code}/users", data)
         
         if result:
             print("\n📊 Add Users Results:")
@@ -307,7 +303,7 @@ class DemocrasiteCLI:
         else:
             print("❌ Failed to add users")
 
-    def _remove_topic_users(self, topic_id):
+    def _remove_topic_users(self, share_code):
         """Remove users from topic access list"""
         print("Remove users from access list (also removes their votes):")
         usernames_input = input("Usernames (comma-separated): ")
@@ -319,7 +315,7 @@ class DemocrasiteCLI:
         usernames = [u.strip() for u in usernames_input.split(',')]
         data = {"usernames": usernames}
         
-        result = self.make_request("DELETE", f"/topic/{topic_id}/users", data)
+        result = self.make_request("DELETE", f"/topic/{share_code}/users", data)
         
         if result:
             print("\n📊 User Removal Results:")

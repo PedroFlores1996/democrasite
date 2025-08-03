@@ -7,6 +7,7 @@ A FastAPI-based democratic voting platform that allows users to create topics wi
 - **Custom Topics**: Create topics with 1-1000 custom answers (not just Yes/No)
 - **Access Control**: Public topics or private topics with user permissions
 - **User Management**: Topic creators can manage access lists for private topics
+- **Share Codes**: Secure 8-character codes instead of exposed database IDs
 - **JWT Authentication**: Secure user registration and login
 - **RESTful API**: Clean REST endpoints for all operations
 - **Interactive CLI**: Command-line interface for easy testing and interaction
@@ -57,15 +58,15 @@ Once running, visit:
 
 ### Topics
 - `POST /topics` - Create a new topic (public or private)
-- `GET /topic/{id}` - Get topic details and vote results
+- `GET /topic/{share_code}` - Get topic details and vote results
 
 ### Voting
-- `POST /topic/{id}/votes` - Vote on a topic
+- `POST /topic/{share_code}/votes` - Vote on a topic
 
 ### User Management (Private Topics)
-- `GET /topic/{id}/users` - View topic access list and votes (creator only)
-- `POST /topic/{id}/users` - Add users to private topic access list (creator only)
-- `DELETE /topic/{id}/users` - Remove users from access list and their votes (creator only)
+- `GET /topic/{share_code}/users` - View topic access list and votes (creator only)
+- `POST /topic/{share_code}/users` - Add users to private topic access list (creator only)
+- `DELETE /topic/{share_code}/users` - Remove users from access list and their votes (creator only)
 
 ## Usage Examples
 
@@ -92,7 +93,7 @@ POST /topics
 
 ### Voting
 ```json
-POST /topic/1/votes
+POST /topic/ABC123XY/votes
 {
   "choice": "Python"
 }
@@ -100,14 +101,14 @@ POST /topic/1/votes
 
 ### Managing Users (Private Topics)
 ```json
-POST /topic/1/users
+POST /topic/ABC123XY/users
 {
   "usernames": ["dave", "eve"]
 }
 ```
 
 ```json
-DELETE /topic/1/users
+DELETE /topic/ABC123XY/users
 {
   "usernames": ["alice"]
 }

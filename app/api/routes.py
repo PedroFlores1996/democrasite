@@ -12,6 +12,7 @@ from app.auth.utils import (
 from app.config.settings import settings
 from app.db.database import get_db
 from app.db.models import User, Topic, Vote, TopicAccess
+from app.services.topic_service import topic_service
 
 router = APIRouter()
 
@@ -73,18 +74,29 @@ def create_topic(
                 db.add(access)
         db.commit()
     
-    return {"id": db_topic.id, "title": db_topic.title, "created_at": db_topic.created_at}
+    # Generate and store share code for the new topic
+    share_code = topic_service.generate_share_code()
+    db_topic.share_code = share_code
+    db.commit()
+    db.refresh(db_topic)
+    
+    return {
+        "id": db_topic.id, 
+        "share_code": share_code,
+        "title": db_topic.title, 
+        "created_at": db_topic.created_at
+    }
 
-@router.post("/topic/{topic_id}/votes")
+@router.post("/topic/{share_code}/votes")
 def submit_vote(
-    topic_id: int,
+    share_code: str,
     vote: VoteSubmit, 
     current_user: User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
-    topic = db.query(Topic).filter(Topic.id == topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=404, detail="Topic not found")
+    # Find topic by share code
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    topic_id = topic.id
     
     # Check access permissions
     if not topic.is_public:
@@ -112,15 +124,15 @@ def submit_vote(
     db.commit()
     return {"message": "Vote submitted successfully"}
 
-@router.get("/topic/{topic_id}", response_model=TopicResponse)
+@router.get("/topic/{share_code}", response_model=TopicResponse)
 def get_topic(
-    topic_id: int, 
+    share_code: str, 
     current_user: User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
-    topic = db.query(Topic).filter(Topic.id == topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=404, detail="Topic not found")
+    # Find topic by share code
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    topic_id = topic.id
     
     # Check access permissions
     if not topic.is_public:
@@ -149,17 +161,17 @@ def get_topic(
         vote_breakdown=vote_breakdown
     )
 
-@router.post("/topic/{topic_id}/users", response_model=UserManagementResponse)
+@router.post("/topic/{share_code}/users", response_model=UserManagementResponse)
 def add_users_to_topic(
-    topic_id: int,
+    share_code: str,
     user_management: UserManagement,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Add users to a private topic's access list"""
-    topic = db.query(Topic).filter(Topic.id == topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=404, detail="Topic not found")
+    # Find topic by share code
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    topic_id = topic.id
     
     # Only topic creator can manage users
     if topic.created_by != current_user.id:
@@ -203,17 +215,17 @@ def add_users_to_topic(
         already_added_users=already_added_users
     )
 
-@router.delete("/topic/{topic_id}/users", response_model=UserManagementResponse)
+@router.delete("/topic/{share_code}/users", response_model=UserManagementResponse)
 def remove_users_from_topic(
-    topic_id: int,
+    share_code: str,
     user_management: UserManagement,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Remove users from topic access list and their votes"""
-    topic = db.query(Topic).filter(Topic.id == topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=404, detail="Topic not found")
+    # Find topic by share code
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    topic_id = topic.id
     
     # Only topic creator can manage users
     if topic.created_by != current_user.id:
@@ -262,16 +274,16 @@ def remove_users_from_topic(
         votes_removed=votes_removed
     )
 
-@router.get("/topic/{topic_id}/users")
+@router.get("/topic/{share_code}/users")
 def get_topic_users(
-    topic_id: int,
+    share_code: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get list of users who have access to the topic"""
-    topic = db.query(Topic).filter(Topic.id == topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=404, detail="Topic not found")
+    # Find topic by share code
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    topic_id = topic.id
     
     # Only topic creator can view user access list
     if topic.created_by != current_user.id:

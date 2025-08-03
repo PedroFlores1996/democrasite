@@ -12,8 +12,10 @@ def test_create_topic_success(client: TestClient, auth_headers, sample_topic_dat
     assert response.status_code == 200
     data = response.json()
     assert "id" in data
+    assert "share_code" in data
     assert data["title"] == "Test Topic"
     assert "created_at" in data
+    assert len(data["share_code"]) == 8  # Share codes should be 8 characters
 
 
 def test_create_topic_without_auth(client: TestClient, sample_topic_data):
@@ -52,6 +54,7 @@ def test_create_private_topic_success(client: TestClient, auth_headers, private_
     assert response.status_code == 200
     data = response.json()
     assert "id" in data
+    assert "share_code" in data
     assert data["title"] == "Private Test Topic"
 
 
@@ -77,10 +80,11 @@ def test_get_topic_success(client: TestClient, auth_headers, sample_topic_data):
     # First create a topic
     create_response = client.post("/topics", json=sample_topic_data, headers=auth_headers)
     assert create_response.status_code == 200
+    share_code = create_response.json()["share_code"]
     topic_id = create_response.json()["id"]
     
-    # Then get the topic
-    response = client.get(f"/topic/{topic_id}", headers=auth_headers)
+    # Then get the topic using share code
+    response = client.get(f"/topic/{share_code}", headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -97,7 +101,7 @@ def test_get_topic_success(client: TestClient, auth_headers, sample_topic_data):
 
 def test_get_nonexistent_topic(client: TestClient, auth_headers):
     """Test getting a topic that doesn't exist"""
-    response = client.get("/topic/999", headers=auth_headers)
+    response = client.get("/topic/invalidcode", headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -110,11 +114,12 @@ def test_vote_on_topic_success(client: TestClient, auth_headers, sample_topic_da
     # First create a topic
     create_response = client.post("/topics", json=sample_topic_data, headers=auth_headers)
     assert create_response.status_code == 200
+    share_code = create_response.json()["share_code"]
     topic_id = create_response.json()["id"]
     
-    # Vote on the topic
+    # Vote on the topic using share code
     vote_data = {"choice": "Option A"}
-    response = client.post(f"/topic/{topic_id}/votes", json=vote_data, headers=auth_headers)
+    response = client.post(f"/topic/{share_code}/votes", json=vote_data, headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -123,7 +128,7 @@ def test_vote_on_topic_success(client: TestClient, auth_headers, sample_topic_da
     assert response.json()["message"] == "Vote submitted successfully"
     
     # Verify vote was recorded
-    topic_response = client.get(f"/topic/{topic_id}", headers=auth_headers)
+    topic_response = client.get(f"/topic/{share_code}", headers=auth_headers)
     topic_data = topic_response.json()
     assert topic_data["total_votes"] == 1
     assert topic_data["vote_breakdown"]["Option A"] == 1
@@ -134,11 +139,11 @@ def test_vote_invalid_choice(client: TestClient, auth_headers, sample_topic_data
     # First create a topic
     create_response = client.post("/topics", json=sample_topic_data, headers=auth_headers)
     assert create_response.status_code == 200
-    topic_id = create_response.json()["id"]
+    share_code = create_response.json()["share_code"]
     
     # Vote with invalid choice
     vote_data = {"choice": "Invalid Option"}
-    response = client.post(f"/topic/{topic_id}/votes", json=vote_data, headers=auth_headers)
+    response = client.post(f"/topic/{share_code}/votes", json=vote_data, headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")

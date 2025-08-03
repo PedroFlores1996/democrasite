@@ -23,6 +23,7 @@ class Topic(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     answers = Column(JSON)  # List of available answers
     is_public = Column(Boolean, default=True)
+    share_code = Column(String, unique=True, index=True)  # Encrypted share code
     
     votes = relationship("Vote", back_populates="topic")
     creator = relationship("User", back_populates="created_topics")
