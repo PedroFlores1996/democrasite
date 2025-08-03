@@ -45,6 +45,8 @@ TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 | `08_view_topic_users.sh` | `GET /topics/{share_code}/users` | View topic users |
 | `09_add_users.sh` | `POST /topics/{share_code}/users` | Add users to private topic |
 | `10_remove_users.sh` | `DELETE /topics/{share_code}/users` | Remove users from topic |
+| `11_search_topics.sh` | `GET /topics` | Search and discover public topics |
+| `12_create_topic_with_tags.sh` | `POST /topics` | Create topics with tags for discovery |
 
 ## Usage Examples
 
@@ -78,12 +80,28 @@ TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ./10_remove_users.sh
 ```
 
+### Topic Discovery & Search
+```bash
+# 1. Create topics with tags for discovery
+./12_create_topic_with_tags.sh
+
+# 2. Search and discover topics
+./11_search_topics.sh
+
+# 3. Search by specific criteria
+curl -X GET "http://localhost:8000/topics?tags=programming&limit=5" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
 ## Notes
 
 - **Share Codes**: All topic operations use 8-character share codes (e.g., `ABC123XY`) instead of database IDs
 - **Authentication**: Bearer token required for all operations except register/login
 - **Private Topics**: User management only works on private topics and only for the creator
 - **Vote Validation**: Votes must match one of the topic's predefined answers
+- **Topic Discovery**: Search only returns public topics with pagination (max 100 per page)
+- **Tags**: Topics can have multiple tags for better categorization and search
+- **Sorting**: Topics can be sorted by popularity (total votes) or recency (creation date)
 
 ## Alternative: FastAPI Docs
 
