@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Democrasite - Digital Democracy Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Particle Background -->
+    <div id="particles-bg"></div>
+
+    <!-- Floating Navigation -->
+    <nav class="nav-float">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <i class="fas fa-cube"></i>
+                </div>
+                <span class="brand-text">Democrasite</span>
+                <div class="brand-badge">BETA</div>
+            </div>
+
+            <div class="nav-center">
+                <div class="search-container">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="globalSearch" placeholder="Search topics, users, tags..."
+                            class="search-input">
+                        <div class="search-suggestions" id="searchSuggestions"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="user-section" id="userSection">
+                    <button id="loginBtn" class="btn btn-ghost">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login
+                    </button>
+                    <button id="registerBtn" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Sign Up
+                    </button>
+                    <div id="userMenu" class="user-menu hidden">
+                        <div class="user-avatar">
+                            <div class="avatar-circle">
+                                <span id="userInitials">U</span>
+                            </div>
+                            <div class="user-info">
+                                <span id="username" class="user-name"></span>
+                                <span class="user-status">Active</span>
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn btn-ghost btn-sm">
+                                <i class="fas fa-user"></i>
+                                Profile
+                            </button>
+                            <button id="logoutBtn" class="btn btn-ghost btn-sm">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Application -->
+    <main class="app-main">
+        <!-- Command Center Hero -->
+        <section id="commandCenter" class="command-center">
+            <div class="command-header">
+                <div class="command-title">
+                    <h1 class="title-main">
+                        <span class="title-gradient">Digital Democracy</span>
+                        <span class="title-sub">Command Center</span>
+                    </h1>
+                    <p class="subtitle">Shape the future through collective decision-making</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-poll"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" data-count="0">0</div>
+                            <div class="stat-label">Active Topics</div>
+                        </div>
+                        <div class="stat-glow"></div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-vote-yea"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" data-count="0">0</div>
+                            <div class="stat-label">Votes Cast</div>
+                        </div>
+                        <div class="stat-glow"></div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" data-count="0">0</div>
+                            <div class="stat-label">Participants</div>
+                        </div>
+                        <div class="stat-glow"></div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" data-count="0">0</div>
+                            <div class="stat-label">% Engagement</div>
+                        </div>
+                        <div class="stat-glow"></div>
+                    </div>
+                </div>
+
+                <div class="command-actions">
+                    <button id="createTopicHero" class="btn btn-primary btn-xl">
+                        <i class="fas fa-plus"></i>
+                        <span>Create Topic</span>
+                        <div class="btn-glow"></div>
+                    </button>
+                    <button id="exploreTopics" class="btn btn-secondary btn-xl">
+                        <i class="fas fa-compass"></i>
+                        <span>Explore</span>
+                        <div class="btn-glow"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="command-visual">
+                <div class="floating-elements">
+                    <div class="floating-card" style="--delay: 0s">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>Ideas</span>
+                    </div>
+                    <div class="floating-card" style="--delay: 0.5s">
+                        <i class="fas fa-balance-scale"></i>
+                        <span>Decisions</span>
+                    </div>
+                    <div class="floating-card" style="--delay: 1s">
+                        <i class="fas fa-rocket"></i>
+                        <span>Action</span>
+                    </div>
+                </div>
+                <div class="command-orb">
+                    <div class="orb-inner"></div>
+                    <div class="orb-pulse"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Topics Dashboard -->
+        <section id="topicsDashboard" class="topics-dashboard hidden">
+            <div class="dashboard-header">
+                <div class="dashboard-title">
+                    <h2>Topics Dashboard</h2>
+                    <div class="title-line"></div>
+                </div>
+
+                <div class="dashboard-controls">
+                    <div class="filter-chips">
+                        <button class="chip active" data-filter="all">
+                            <i class="fas fa-globe"></i>
+                            All Topics
+                        </button>
+                        <button class="chip" data-filter="public">
+                            <i class="fas fa-users"></i>
+                            Public
+                        </button>
+                        <button class="chip" data-filter="private">
+                            <i class="fas fa-lock"></i>
+                            Private
+                        </button>
+                        <button class="chip" data-filter="trending">
+                            <i class="fas fa-fire"></i>
+                            Trending
+                        </button>
+                    </div>
+
+                    <div class="dashboard-actions">
+                        <div class="sort-selector">
+                            <select id="sortBy" class="custom-select">
+                                <option value="recent">Recently Created</option>
+                                <option value="popular">Most Popular</option>
+                                <option value="votes">Most Votes</option>
+                                <option value="alphabetical">A-Z</option>
+                            </select>
+                        </div>
+                        <button id="newTopicBtn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            New Topic
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="topics-container">
+                <div id="topicsGrid" class="topics-grid">
+                    <!-- Topics will be loaded here -->
+                </div>
+                <div id="loadingSpinner" class="loading-spinner hidden">
+                    <div class="spinner"></div>
+                    <span>Loading topics...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Topic Detail View -->
+        <section id="topicDetail" class="topic-detail hidden">
+            <div class="detail-header">
+                <button id="backBtn" class="btn btn-ghost">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Dashboard
+                </button>
+                <div class="detail-actions">
+                    <button id="shareTopicBtn" class="btn btn-outline">
+                        <i class="fas fa-share-alt"></i>
+                        Share
+                    </button>
+                    <button class="btn btn-ghost">
+                        <i class="fas fa-bookmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="detail-content">
+                <div class="topic-header">
+                    <div class="topic-meta">
+                        <div class="topic-badges">
+                            <span class="badge badge-primary" id="topicVisibility">Public</span>
+                            <div id="topicTags" class="topic-tags"></div>
+                        </div>
+                        <div class="topic-author-info">
+                            <div class="author-avatar">
+                                <span id="authorInitials">A</span>
+                            </div>
+                            <div class="author-details">
+                                <span id="topicAuthor" class="author-name">Author</span>
+                                <span id="topicDate" class="topic-date">Date</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h1 id="topicTitle" class="topic-title">Topic Title</h1>
+                    <p id="topicDescription" class="topic-description">Topic description goes here...</p>
+                </div>
+
+                <div class="voting-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">
+                            <i class="fas fa-poll"></i>
+                            Cast Your Vote
+                        </h3>
+                        <div class="vote-stats">
+                            <span class="total-votes">0 votes</span>
+                        </div>
+                    </div>
+
+                    <div id="votingOptions" class="voting-options">
+                        <!-- Voting options will be loaded here -->
+                    </div>
+
+                    <div id="votingResults" class="voting-results">
+                        <!-- Results will be shown here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modals -->
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="authModalTitle">Welcome Back</h3>
+                <button class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="loginUsername">Username</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="loginUsername" required placeholder="Enter your username">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="loginPassword" required placeholder="Enter your password">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <span class="btn-text">Sign In</span>
+                        <div class="btn-loader"></div>
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" class="auth-form hidden">
+                    <div class="form-group">
+                        <label for="registerUsername">Username</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="registerUsername" required placeholder="Choose a username">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="registerPassword" required placeholder="Create a password">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerConfirmPassword">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-check input-icon"></i>
+                            <input type="password" id="registerConfirmPassword" required
+                                placeholder="Confirm your password">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <span class="btn-text">Create Account</span>
+                        <div class="btn-loader"></div>
+                    </button>
+                </form>
+
+                <div class="auth-switch">
+                    <span id="authSwitchText">Don't have an account?</span>
+                    <button id="authSwitchBtn" class="btn btn-link">Sign up</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Topic Modal -->
+    <div id="createTopicModal" class="modal-overlay">
+        <div class="modal-container modal-large">
+            <div class="modal-header">
+                <h3>Create New Topic</h3>
+                <button class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="createTopicForm" class="modal-body">
+                <div class="form-row">
+                    <div class="form-group flex-2">
+                        <label for="topicTitleInput">Topic Title</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-heading input-icon"></i>
+                            <input type="text" id="topicTitleInput" required placeholder="What's your topic about?">
+                        </div>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>Visibility</label>
+                        <div class="toggle-group">
+                            <input type="radio" name="visibility" value="public" id="visibilityPublic" checked>
+                            <label for="visibilityPublic" class="toggle-label">
+                                <i class="fas fa-globe"></i>
+                                Public
+                            </label>
+                            <input type="radio" name="visibility" value="private" id="visibilityPrivate">
+                            <label for="visibilityPrivate" class="toggle-label">
+                                <i class="fas fa-lock"></i>
+                                Private
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="topicDescriptionInput">Description</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-align-left input-icon"></i>
+                        <textarea id="topicDescriptionInput" rows="3"
+                            placeholder="Provide more details about your topic..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="topicTagsInput">Tags</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-tags input-icon"></i>
+                        <input type="text" id="topicTagsInput"
+                            placeholder="politics, technology, community... (comma separated)">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Voting Options</label>
+                    <div id="votingOptionsContainer" class="options-container">
+                        <div class="option-item">
+                            <div class="input-wrapper">
+                                <i class="fas fa-circle option-icon"></i>
+                                <input type="text" placeholder="Option 1" required>
+                            </div>
+                            <button type="button" class="btn btn-ghost btn-sm remove-option">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="option-item">
+                            <div class="input-wrapper">
+                                <i class="fas fa-circle option-icon"></i>
+                                <input type="text" placeholder="Option 2" required>
+                            </div>
+                            <button type="button" class="btn btn-ghost btn-sm remove-option">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="addOptionBtn" class="btn btn-outline btn-sm">
+                        <i class="fas fa-plus"></i>
+                        Add Option
+                    </button>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost modal-close">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i>
+                        <span class="btn-text">Create Topic</span>
+                        <div class="btn-loader"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="/static/js/particles.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/topics.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

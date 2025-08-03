@@ -42,17 +42,13 @@ def search_topics(
     title: Optional[str] = Query(None, description="Search in topic titles"),
     tags: Optional[str] = Query(None, description="Comma-separated tags to filter by"),
     sort: SortOption = Query(SortOption.popular, description="Sort order"),
-    _: User = Depends(get_current_user),  # Require auth but don't use user
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Search and discover public topics with filtering and pagination.
-
-    - **page**: Page number (starts at 1)
-    - **limit**: Results per page (1-100, default 20)
-    - **title**: Search for topics containing this text in title
-    - **tags**: Filter by tags (comma-separated, e.g., "sports,politics")
-    - **sort**: Sort by popularity (total votes), recent (newest first), or votes (alias for popular)
+    Search topics for authenticated users.
+    Shows public topics + private topics user has access to.
+    All topics require authentication to view.
     """
     return topic_search_service.search_topics(db, page, limit, title, tags, sort)
 
@@ -143,6 +139,3 @@ def delete_topic(
     return topic_user_service.delete_topic(db, topic, current_user)
 
 
-@router.get("/")
-def read_root():
-    return {"message": "Welcome to Democrasite API"}
