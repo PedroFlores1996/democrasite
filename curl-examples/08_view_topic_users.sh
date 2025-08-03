@@ -6,7 +6,7 @@
 TOKEN="YOUR_TOKEN"
 SHARE_CODE="ABC123XY"
 
-curl -X GET "http://localhost:8000/topic/$SHARE_CODE/users" \
+curl -X GET "http://localhost:8000/topics/$SHARE_CODE/users" \
   -H "Authorization: Bearer $TOKEN"
 
 echo ""

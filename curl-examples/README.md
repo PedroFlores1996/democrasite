@@ -40,11 +40,11 @@ TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 | `03_oauth_login.sh` | `POST /token` | OAuth2 form login |
 | `04_create_public_topic.sh` | `POST /topics` | Create public topic |
 | `05_create_private_topic.sh` | `POST /topics` | Create private topic |
-| `06_vote.sh` | `POST /topic/{share_code}/votes` | Vote on topic |
-| `07_view_topic.sh` | `GET /topic/{share_code}` | View topic results |
-| `08_view_topic_users.sh` | `GET /topic/{share_code}/users` | View topic users |
-| `09_add_users.sh` | `POST /topic/{share_code}/users` | Add users to private topic |
-| `10_remove_users.sh` | `DELETE /topic/{share_code}/users` | Remove users from topic |
+| `06_vote.sh` | `POST /topics/{share_code}/votes` | Vote on topic |
+| `07_view_topic.sh` | `GET /topics/{share_code}` | View topic results |
+| `08_view_topic_users.sh` | `GET /topics/{share_code}/users` | View topic users |
+| `09_add_users.sh` | `POST /topics/{share_code}/users` | Add users to private topic |
+| `10_remove_users.sh` | `DELETE /topics/{share_code}/users` | Remove users from topic |
 
 ## Usage Examples
 

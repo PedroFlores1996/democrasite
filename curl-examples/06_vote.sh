@@ -6,7 +6,7 @@
 TOKEN="YOUR_TOKEN"
 SHARE_CODE="ABC123XY"
 
-curl -X POST "http://localhost:8000/topic/$SHARE_CODE/votes" \
+curl -X POST "http://localhost:8000/topics/$SHARE_CODE/votes" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{

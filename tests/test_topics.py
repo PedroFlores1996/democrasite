@@ -25,7 +25,7 @@ def test_create_topic_without_auth(client: TestClient, sample_topic_data):
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
     
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_create_topic_invalid_answers(client: TestClient, auth_headers):
@@ -84,7 +84,7 @@ def test_get_topic_success(client: TestClient, auth_headers, sample_topic_data):
     topic_id = create_response.json()["id"]
     
     # Then get the topic using share code
-    response = client.get(f"/topic/{share_code}", headers=auth_headers)
+    response = client.get(f"/topics/{share_code}", headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -101,7 +101,7 @@ def test_get_topic_success(client: TestClient, auth_headers, sample_topic_data):
 
 def test_get_nonexistent_topic(client: TestClient, auth_headers):
     """Test getting a topic that doesn't exist"""
-    response = client.get("/topic/invalidcode", headers=auth_headers)
+    response = client.get("/topics/invalidcode", headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -119,7 +119,7 @@ def test_vote_on_topic_success(client: TestClient, auth_headers, sample_topic_da
     
     # Vote on the topic using share code
     vote_data = {"choice": "Option A"}
-    response = client.post(f"/topic/{share_code}/votes", json=vote_data, headers=auth_headers)
+    response = client.post(f"/topics/{share_code}/votes", json=vote_data, headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
@@ -128,7 +128,7 @@ def test_vote_on_topic_success(client: TestClient, auth_headers, sample_topic_da
     assert response.json()["message"] == "Vote submitted successfully"
     
     # Verify vote was recorded
-    topic_response = client.get(f"/topic/{share_code}", headers=auth_headers)
+    topic_response = client.get(f"/topics/{share_code}", headers=auth_headers)
     topic_data = topic_response.json()
     assert topic_data["total_votes"] == 1
     assert topic_data["vote_breakdown"]["Option A"] == 1
@@ -143,7 +143,7 @@ def test_vote_invalid_choice(client: TestClient, auth_headers, sample_topic_data
     
     # Vote with invalid choice
     vote_data = {"choice": "Invalid Option"}
-    response = client.post(f"/topic/{share_code}/votes", json=vote_data, headers=auth_headers)
+    response = client.post(f"/topics/{share_code}/votes", json=vote_data, headers=auth_headers)
     
     print(f"Response status: {response.status_code}")
     print(f"Response body: {response.text}")
