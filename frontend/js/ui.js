@@ -38,7 +38,7 @@ class UIManager {
         }
 
         // Hide all modals by default
-        const modals = ['authModal', 'createTopicModal'];
+        const modals = ['authModal', 'createTopicModal', 'profileModal'];
         modals.forEach(modalId => {
             const modal = document.getElementById(modalId);
             if (modal) {
@@ -193,6 +193,62 @@ class UIManager {
         }
     }
 
+    async showProfileModal() {
+        try {
+            authManager.requireAuth();
+            
+            // Load user stats
+            const stats = await api.getUserStats();
+            
+            // Update profile modal with user data
+            document.getElementById('profileUsername').textContent = stats.username;
+            document.getElementById('profileInitials').textContent = stats.username.charAt(0).toUpperCase();
+            document.getElementById('profileJoinDate').textContent = new Date(stats.created_at).toLocaleDateString();
+            document.getElementById('profileTopicsCreated').textContent = stats.topics_created;
+            document.getElementById('profileVotesCast').textContent = stats.votes_cast;
+            document.getElementById('profileFavorites').textContent = stats.favorite_topics;
+            
+            this.showModal('profileModal');
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            showToast('Error loading profile data', 'error');
+        }
+    }
+
+    async deleteAccount() {
+        try {
+            authManager.requireAuth();
+            
+            const confirmed = await this.confirm(
+                'Are you sure you want to delete your account? This action cannot be undone. All your topics, votes, and data will be permanently deleted.',
+                'Delete Account'
+            );
+            
+            if (!confirmed) return;
+            
+            // Double confirmation for such a destructive action
+            const doubleConfirmed = await this.confirm(
+                'This is your final warning. This will permanently delete all your data including topics, votes, and favorites. Are you absolutely sure?',
+                'Final Confirmation'
+            );
+            
+            if (!doubleConfirmed) return;
+            
+            await api.deleteAccount();
+            
+            // Clear authentication and redirect
+            authManager.logout();
+            this.hideModal('profileModal');
+            this.showSection('commandCenter');
+            
+            showToast('Account deleted successfully', 'success');
+            
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            showToast(error.message || 'Error deleting account', 'error');
+        }
+    }
+
     showToast(message, type = 'info', duration = 5000) {
         const container = document.getElementById('toastContainer');
         if (!container) return;
@@ -332,6 +388,7 @@ window.showSection = (sectionId) => uiManager.showSection(sectionId);
 window.showModal = (modalId) => uiManager.showModal(modalId);
 window.hideModal = (modalId) => uiManager.hideModal(modalId);
 window.showCreateTopicModal = () => uiManager.showCreateTopicModal();
+window.showProfileModal = () => uiManager.showProfileModal();
 window.showToast = (message, type, duration) => uiManager.showToast(message, type, duration);
 window.confirm = (message, title) => uiManager.confirm(message, title);
 

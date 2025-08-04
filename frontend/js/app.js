@@ -348,6 +348,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (statsGrid) {
         observer.observe(statsGrid);
     }
+
+    // Delete account button
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', async () => {
+            await uiManager.deleteAccount();
+        });
+    }
 });
 
 // Export for testing/debugging

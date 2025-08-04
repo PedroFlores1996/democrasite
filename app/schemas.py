@@ -116,3 +116,13 @@ class TopicsSearchResponse(BaseModel):
     limit: int
     has_next: bool
     has_prev: bool
+
+# User Profile & Stats Schemas
+class UserStats(BaseModel):
+    """User statistics for profile page"""
+    username: str
+    user_id: int
+    created_at: datetime
+    topics_created: int
+    votes_cast: int
+    favorite_topics: int

@@ -60,7 +60,7 @@
                             </div>
                         </div>
                         <div class="user-actions">
-                            <button class="btn btn-ghost btn-sm">
+                            <button class="btn btn-ghost btn-sm" onclick="showProfileModal()">
                                 <i class="fas fa-user"></i>
                                 Profile
                             </button>
@@ -466,6 +466,74 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div id="profileModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>User Profile</h3>
+                <button class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="profile-info">
+                    <div class="profile-avatar">
+                        <div class="avatar-circle-large">
+                            <span id="profileInitials">U</span>
+                        </div>
+                    </div>
+                    <div class="profile-details">
+                        <h4 id="profileUsername">Username</h4>
+                        <p class="profile-join-date">
+                            <i class="fas fa-calendar"></i>
+                            Joined <span id="profileJoinDate">Date</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="profile-stats">
+                    <div class="stat-row">
+                        <div class="stat-item-profile">
+                            <div class="stat-icon-profile">
+                                <i class="fas fa-poll"></i>
+                            </div>
+                            <div class="stat-content-profile">
+                                <div class="stat-number-profile" id="profileTopicsCreated">0</div>
+                                <div class="stat-label-profile">Topics Created</div>
+                            </div>
+                        </div>
+                        <div class="stat-item-profile">
+                            <div class="stat-icon-profile">
+                                <i class="fas fa-vote-yea"></i>
+                            </div>
+                            <div class="stat-content-profile">
+                                <div class="stat-number-profile" id="profileVotesCast">0</div>
+                                <div class="stat-label-profile">Votes Cast</div>
+                            </div>
+                        </div>
+                        <div class="stat-item-profile">
+                            <div class="stat-icon-profile">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="stat-content-profile">
+                                <div class="stat-number-profile" id="profileFavorites">0</div>
+                                <div class="stat-label-profile">Favorite Topics</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <button id="deleteAccountBtn" class="btn btn-danger">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Delete Account</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

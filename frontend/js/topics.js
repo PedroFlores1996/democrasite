@@ -22,16 +22,16 @@ class TopicsManager {
             const response = await api.getTopics(search, '', this.currentSort);
             // Extract topics array from the paginated response
             this.topics = Array.isArray(response) ? response : (response.topics || []);
-            
+
             // Load favorites in parallel
             await this.loadFavorites();
-            
+
             this.renderTopics();
         } catch (error) {
             console.error('Error loading topics:', error);
             console.error('Auth status:', authManager.isAuthenticated);
             console.error('Token:', localStorage.getItem('authToken'));
-            
+
             // Check if it's an authentication error
             if (error.message.includes('401') || error.message.includes('Unauthorized')) {
                 // Clear authentication state and redirect to login
@@ -52,7 +52,7 @@ class TopicsManager {
 
     renderUnauthenticatedState() {
         const grid = document.getElementById('topicsGrid');
-        
+
         grid.innerHTML = `
             <div class="auth-required-state" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;">
                 <div class="auth-required-icon">
@@ -60,7 +60,7 @@ class TopicsManager {
                 </div>
                 <h3 style="color: var(--text-primary); margin-bottom: 1rem; font-size: 1.5rem;">Authentication Required</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.6;">
-                    Join the digital democracy! Log in to explore topics, cast your vote, and make your voice heard in the community.
+                    Ask questions, cast your vote, and see how the world thinks.
                 </p>
                 <div class="auth-actions" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                     <button class="btn btn-primary btn-lg" onclick="showAuthModal('login')" style="min-width: 150px;">
@@ -98,7 +98,7 @@ class TopicsManager {
     renderTopics() {
         const grid = document.getElementById('topicsGrid');
         const filteredTopics = this.getFilteredTopics();
-        
+
         if (filteredTopics.length === 0) {
             grid.innerHTML = `
                 <div class="no-topics" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
@@ -173,9 +173,9 @@ class TopicsManager {
             showSection('topicDetail');
         } catch (error) {
             console.error('Error loading topic:', error);
-            
+
             // Check if it's an access denied error (403) or not found (404)
-            if (error.message.includes('403') || error.message.includes('Access denied') || 
+            if (error.message.includes('403') || error.message.includes('Access denied') ||
                 error.message.includes('404') || error.message.includes('Not found')) {
                 showToast('Topic not found or access denied', 'error');
                 // Stay on dashboard if user is authenticated, otherwise go to command center
@@ -198,18 +198,18 @@ class TopicsManager {
         document.getElementById('topicDescription').textContent = this.currentTopic.description || 'No description provided';
         document.getElementById('topicAuthor').textContent = this.currentTopic.created_by;
         document.getElementById('topicDate').textContent = this.formatDate(this.currentTopic.created_at);
-        
+
         // Update visibility badge
         const visibilityBadge = document.getElementById('topicVisibility');
         visibilityBadge.textContent = this.currentTopic.is_public ? 'Public' : 'Private';
         visibilityBadge.className = `badge ${this.currentTopic.is_public ? 'badge-public' : 'badge-private'}`;
-        
+
         // Update author initials
         const authorInitials = document.getElementById('authorInitials');
         if (authorInitials) {
             authorInitials.textContent = this.currentTopic.created_by.charAt(0).toUpperCase();
         }
-        
+
         // Render tags
         const tagsContainer = document.getElementById('topicTags');
         if (this.currentTopic.tags && this.currentTopic.tags.length > 0) {
@@ -222,10 +222,10 @@ class TopicsManager {
 
         // Show/hide delete button based on creator status
         this.updateDeleteButton();
-        
+
         // Show/hide leave button for private topics
         this.updateLeaveButton();
-        
+
         // Update favorite button state
         this.updateFavoriteButton();
 
@@ -339,10 +339,10 @@ class TopicsManager {
             const newTopic = await api.createTopic(topicData);
             showToast('Topic created successfully!', 'success');
             hideModal('createTopicModal');
-            
+
             // Refresh topics list
             await this.loadTopics();
-            
+
             return newTopic;
         } catch (error) {
             console.error('Error creating topic:', error);
@@ -354,7 +354,7 @@ class TopicsManager {
     async submitVote(answer) {
         try {
             authManager.requireAuth();
-            
+
             if (!this.selectedAnswer) {
                 showToast('Please select an answer', 'error');
                 return;
@@ -362,13 +362,13 @@ class TopicsManager {
 
             await api.vote(this.currentTopic.share_code, this.selectedAnswer);
             showToast('Vote submitted successfully!', 'success');
-            
+
             // Reload topic to get updated results
             await this.showTopic(this.currentTopic.share_code);
-            
+
             // Force refresh the topics list in background to update vote counts
             await this.refreshTopicsData();
-            
+
         } catch (error) {
             console.error('Error submitting vote:', error);
             showToast(error.message, 'error');
@@ -377,17 +377,17 @@ class TopicsManager {
 
     selectAnswer(answer) {
         this.selectedAnswer = answer;
-        
+
         // Update UI
         document.querySelectorAll('.voting-option').forEach(option => {
             option.classList.remove('selected');
         });
-        
+
         const selectedOption = document.querySelector(`[data-answer="${this.escapeHtml(answer)}"]`);
         if (selectedOption) {
             selectedOption.classList.add('selected');
         }
-        
+
         // Enable submit button
         const submitBtn = document.querySelector('.btn-vote');
         if (submitBtn) {
@@ -442,7 +442,7 @@ class TopicsManager {
     async addOption(option) {
         try {
             authManager.requireAuth();
-            
+
             if (!this.currentTopic) {
                 showToast('No topic selected', 'error');
                 return;
@@ -450,10 +450,10 @@ class TopicsManager {
 
             const response = await api.addOptionToTopic(this.currentTopic.share_code, option);
             showToast('Option added successfully!', 'success');
-            
+
             // Reload topic to show the new option
             await this.showTopic(this.currentTopic.share_code);
-            
+
         } catch (error) {
             console.error('Error adding option:', error);
             showToast(error.message || 'Error adding option', 'error');
@@ -464,18 +464,18 @@ class TopicsManager {
     async deleteTopic(shareCode) {
         try {
             authManager.requireAuth();
-            
+
             if (!confirm('Are you sure you want to delete this topic? This action cannot be undone.')) {
                 return;
             }
 
             await api.deleteTopic(shareCode);
             showToast('Topic deleted successfully', 'success');
-            
+
             // Navigate back to dashboard
             showSection('topicsDashboard');
             await this.loadTopics();
-            
+
         } catch (error) {
             console.error('Error deleting topic:', error);
             showToast(error.message || 'Error deleting topic', 'error');
@@ -486,7 +486,7 @@ class TopicsManager {
     async loadFavorites() {
         try {
             if (!authManager.isAuthenticated) return;
-            
+
             const favorites = await api.getFavorites();
             this.favorites = new Set(favorites.map(fav => fav.share_code));
         } catch (error) {
@@ -498,10 +498,10 @@ class TopicsManager {
     async toggleFavorite(shareCode) {
         try {
             authManager.requireAuth();
-            
+
             const isFavorited = this.favorites.has(shareCode);
-            
-            
+
+
             if (isFavorited) {
                 await api.removeFromFavorites(shareCode);
                 this.favorites.delete(shareCode);
@@ -511,10 +511,10 @@ class TopicsManager {
                 this.favorites.add(shareCode);
                 showToast('Added to favorites', 'success');
             }
-            
+
             // Update UI
             this.updateFavoriteButton();
-            
+
         } catch (error) {
             console.error('Error toggling favorite:', error);
             showToast(error.message || 'Error updating favorites', 'error');
@@ -524,12 +524,12 @@ class TopicsManager {
     updateDeleteButton() {
         const deleteBtn = document.getElementById('deleteTopicBtn');
         if (!deleteBtn || !this.currentTopic) return;
-        
+
         // Show delete button only if current user is the creator
         const currentUser = authManager.currentUser;
         const isCreator = currentUser && currentUser.username === this.currentTopic.created_by;
-        
-        
+
+
         if (isCreator) {
             deleteBtn.classList.remove('hidden');
         } else {
@@ -540,12 +540,12 @@ class TopicsManager {
     updateLeaveButton() {
         const leaveBtn = document.getElementById('leaveTopicBtn');
         if (!leaveBtn || !this.currentTopic) return;
-        
+
         // Show leave button only for private topics where user is not the creator
         const currentUser = authManager.currentUser;
         const isCreator = currentUser && currentUser.username === this.currentTopic.created_by;
         const isPrivate = !this.currentTopic.is_public;
-        
+
         if (isPrivate && !isCreator && authManager.isAuthenticated) {
             leaveBtn.classList.remove('hidden');
         } else {
@@ -556,18 +556,18 @@ class TopicsManager {
     async leaveTopic(shareCode) {
         try {
             authManager.requireAuth();
-            
+
             if (!confirm('Are you sure you want to leave this topic? You will no longer be able to see it unless you access it via share code again.')) {
                 return;
             }
 
             await api.leaveTopic(shareCode);
             showToast('You have left the topic', 'success');
-            
+
             // Navigate back to dashboard
             showSection('topicsDashboard');
             await this.loadTopics();
-            
+
         } catch (error) {
             console.error('Error leaving topic:', error);
             showToast(error.message || 'Error leaving topic', 'error');
@@ -577,10 +577,10 @@ class TopicsManager {
     updateFavoriteButton() {
         const favoriteBtn = document.getElementById('favoriteTopicBtn');
         if (!favoriteBtn || !this.currentTopic) return;
-        
+
         const isFavorited = this.favorites.has(this.currentTopic.share_code);
-        
-        
+
+
         if (isFavorited) {
             favoriteBtn.classList.add('btn-favorite', 'favorited');
             favoriteBtn.title = 'Remove from favorites';
@@ -647,13 +647,13 @@ window.cancelAddOption = () => {
 window.submitNewOption = async () => {
     const input = document.getElementById('newOptionInput');
     if (!input) return;
-    
+
     const option = input.value.trim();
     if (!option) {
         showToast('Please enter an option', 'error');
         return;
     }
-    
+
     await topicsManager.addOption(option);
     window.cancelAddOption();
 };
@@ -663,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Search functionality
     const searchInput = document.getElementById('globalSearch');
     let searchTimeout;
-    
+
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
@@ -683,13 +683,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const createTopicForm = document.getElementById('createTopicForm');
     createTopicForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const title = document.getElementById('topicTitleInput').value;
         const description = document.getElementById('topicDescriptionInput').value;
         const tagsInput = document.getElementById('topicTagsInput').value;
         const visibility = document.querySelector('input[name="visibility"]:checked').value;
         const editable = document.querySelector('input[name="editable"]:checked').value;
-        
+
         // Get voting options
         const optionInputs = document.querySelectorAll('#votingOptionsContainer input');
         const answers = Array.from(optionInputs)
@@ -733,12 +733,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('No topic selected for sharing', 'error');
             return;
         }
-        
+
         try {
             if (!topicsManager.currentTopic.share_code) {
                 throw new Error('Topic does not have a share code');
             }
-            
+
             let shareUrl;
             if (topicsManager.currentTopic.is_public) {
                 // For public topics, just copy the URL with share code
@@ -747,7 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // For private topics, use existing share code or get a new one
                 shareUrl = `${window.location.origin}${window.location.pathname}?share=${topicsManager.currentTopic.share_code}`;
             }
-            
+
             // Try modern clipboard API first, fall back to legacy method
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(shareUrl);
@@ -764,7 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.execCommand('copy');
                 textArea.remove();
             }
-            
+
             if (topicsManager.currentTopic.is_public) {
                 showToast('Topic URL copied to clipboard!', 'success');
             } else {
@@ -825,7 +825,7 @@ function resetVotingOptions() {
             </button>
         </div>
     `;
-    
+
     // Re-attach remove event listeners for the reset options
     container.querySelectorAll('.remove-option').forEach(btn => {
         btn.addEventListener('click', (e) => {

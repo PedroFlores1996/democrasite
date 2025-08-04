@@ -124,6 +124,16 @@ class API {
         return this.get('/api/users/me');
     }
 
+    // Get user stats
+    async getUserStats() {
+        return this.get('/api/users/me/stats');
+    }
+
+    // Delete user account
+    async deleteAccount() {
+        return this.delete('/api/users/me');
+    }
+
     // Topic endpoints
     async getTopics(search = '', tags = '', sort = 'popular', limit = 20, page = 1) {
         const params = new URLSearchParams();
