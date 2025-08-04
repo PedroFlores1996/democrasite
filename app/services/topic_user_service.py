@@ -296,6 +296,66 @@ class TopicUserService:
             db.delete(access)
         
         return access_count
+    
+    def leave_topic(
+        self,
+        db: Session,
+        topic: Topic,
+        current_user: User
+    ) -> Dict[str, str]:
+        """
+        Leave a private topic (remove user's access and votes)
+        """
+        # Only allow leaving private topics
+        if topic.is_public:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot leave public topics"
+            )
+        
+        # Creator cannot leave their own topic
+        if topic.created_by == current_user.id:
+            raise HTTPException(
+                status_code=400,
+                detail="Topic creator cannot leave their own topic"
+            )
+        
+        # Check if user has access to the topic
+        access = (
+            db.query(TopicAccess)
+            .filter(
+                TopicAccess.topic_id == topic.id,
+                TopicAccess.user_id == current_user.id
+            )
+            .first()
+        )
+        
+        if not access:
+            raise HTTPException(
+                status_code=404,
+                detail="You don't have access to this topic"
+            )
+        
+        # Remove user's vote if they have one
+        vote = (
+            db.query(Vote)
+            .filter(
+                Vote.topic_id == topic.id,
+                Vote.user_id == current_user.id
+            )
+            .first()
+        )
+        
+        if vote:
+            db.delete(vote)
+            # Update denormalized vote count
+            topic.vote_count = max(0, (topic.vote_count or 0) - 1)
+        
+        # Remove access
+        db.delete(access)
+        db.commit()
+        
+        return {"message": f"You have left the topic '{topic.title}'"}
 
 
 # Singleton instance

@@ -223,6 +223,9 @@ class TopicsManager {
         // Show/hide delete button based on creator status
         this.updateDeleteButton();
         
+        // Show/hide leave button for private topics
+        this.updateLeaveButton();
+        
         // Update favorite button state
         this.updateFavoriteButton();
 
@@ -534,6 +537,43 @@ class TopicsManager {
         }
     }
 
+    updateLeaveButton() {
+        const leaveBtn = document.getElementById('leaveTopicBtn');
+        if (!leaveBtn || !this.currentTopic) return;
+        
+        // Show leave button only for private topics where user is not the creator
+        const currentUser = authManager.currentUser;
+        const isCreator = currentUser && currentUser.username === this.currentTopic.created_by;
+        const isPrivate = !this.currentTopic.is_public;
+        
+        if (isPrivate && !isCreator && authManager.isAuthenticated) {
+            leaveBtn.classList.remove('hidden');
+        } else {
+            leaveBtn.classList.add('hidden');
+        }
+    }
+
+    async leaveTopic(shareCode) {
+        try {
+            authManager.requireAuth();
+            
+            if (!confirm('Are you sure you want to leave this topic? You will no longer be able to see it unless you access it via share code again.')) {
+                return;
+            }
+
+            await api.leaveTopic(shareCode);
+            showToast('You have left the topic', 'success');
+            
+            // Navigate back to dashboard
+            showSection('topicsDashboard');
+            await this.loadTopics();
+            
+        } catch (error) {
+            console.error('Error leaving topic:', error);
+            showToast(error.message || 'Error leaving topic', 'error');
+        }
+    }
+
     updateFavoriteButton() {
         const favoriteBtn = document.getElementById('favoriteTopicBtn');
         if (!favoriteBtn || !this.currentTopic) return;
@@ -752,6 +792,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         await topicsManager.deleteTopic(topicsManager.currentTopic.share_code);
+    });
+
+    // Leave topic button
+    document.getElementById('leaveTopicBtn').addEventListener('click', async () => {
+        if (!topicsManager.currentTopic) {
+            console.error('No current topic available for leaving');
+            return;
+        }
+        await topicsManager.leaveTopic(topicsManager.currentTopic.share_code);
     });
 });
 

@@ -29,8 +29,8 @@ class TopicCreate(BaseModel):
     @field_validator('allowed_users')
     @classmethod
     def validate_allowed_users(cls, v, info):
-        if not info.data.get('is_public') and not v:
-            raise ValueError('Private topics must have at least one allowed user')
+        # Private topics no longer require pre-defined allowed users
+        # Users will be auto-added when they access via share code
         return v
 
 class TopicResponse(BaseModel):

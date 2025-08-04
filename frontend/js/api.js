@@ -149,6 +149,10 @@ class API {
         return this.delete(`/api/topics/${shareCode}`);
     }
 
+    async leaveTopic(shareCode) {
+        return this.post(`/api/topics/${shareCode}/leave`);
+    }
+
     async vote(shareCode, answer) {
         return this.post(`/api/topics/${shareCode}/votes`, { choice: answer });
     }

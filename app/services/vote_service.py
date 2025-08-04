@@ -68,6 +68,30 @@ class VoteService:
                     detail="Access denied to this private topic"
                 )
     
+    def check_and_grant_access(self, db: Session, topic: Topic, current_user: User):
+        """
+        Check if user has access to topic. For private topics accessed via share code,
+        automatically grant access by adding user to allowed list.
+        """
+        if topic.is_public:
+            return  # Public topics don't need access control
+        
+        # Check if user already has access
+        access = (
+            db.query(TopicAccess)
+            .filter(
+                TopicAccess.topic_id == topic.id,
+                TopicAccess.user_id == current_user.id
+            )
+            .first()
+        )
+        
+        if not access:
+            # Auto-add user to allowed list when accessing via share code
+            new_access = TopicAccess(topic_id=topic.id, user_id=current_user.id)
+            db.add(new_access)
+            db.commit()
+    
     def _validate_vote_choice(self, topic: Topic, choice: str):
         """
         Validate that the vote choice is valid for this topic

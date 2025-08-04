@@ -76,8 +76,8 @@ def get_topic(
     """Get topic details including vote breakdown"""
     topic = topic_service.find_topic_by_share_code(share_code, db)
     
-    # Check access permissions (reuse vote service logic)
-    vote_service._check_voting_permissions(db, topic, current_user)
+    # Check and grant access for private topics (auto-add via share code)
+    vote_service.check_and_grant_access(db, topic, current_user)
     
     # Get vote statistics
     vote_breakdown = vote_service.get_vote_breakdown(db, topic.id, topic.answers)
@@ -154,5 +154,16 @@ def delete_topic(
     """Delete a topic and all related data (creator only)"""
     topic = topic_service.find_topic_by_share_code(share_code, db)
     return topic_user_service.delete_topic(db, topic, current_user)
+
+
+@router.post("/topics/{share_code}/leave")
+def leave_topic(
+    share_code: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Leave a private topic (remove access for current user)"""
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    return topic_user_service.leave_topic(db, topic, current_user)
 
 
