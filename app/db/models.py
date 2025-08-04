@@ -25,6 +25,7 @@ class Topic(Base):
     is_public = Column(Boolean, default=True, index=True)  # Add index for filtering public topics
     share_code = Column(String, unique=True, index=True)  # Encrypted share code
     tags = Column(JSON, default=list)  # List of tags for categorization and search
+    vote_count = Column(Integer, default=0)  # Denormalized vote count for performance
     
     votes = relationship("Vote", back_populates="topic")
     creator = relationship("User", back_populates="created_topics")

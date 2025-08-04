@@ -221,24 +221,6 @@ body {
     gap: 16px;
 }
 
-.theme-toggle {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius);
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.theme-toggle:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: var(--text-primary);
-}
 
 /* User Section */
 .user-section {
@@ -364,6 +346,12 @@ body {
     background: rgba(255, 255, 255, 0.2);
     color: var(--text-primary);
     border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Modal button improvements */
+.modal-close {
+    min-width: 80px;
+    padding: 12px 24px !important;
 }
 
 .btn-outline {
@@ -886,12 +874,13 @@ body {
 
 .topic-tags {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
-    margin-bottom: 16px;
+    margin-top: 8px;
 }
 
-.tag {
+.tag,
+.topic-tag {
     background: var(--gradient-accent);
     color: white;
     padding: 4px 8px;
@@ -1328,6 +1317,7 @@ body {
     border-radius: var(--radius);
     overflow: hidden;
     border: 2px solid rgba(255, 255, 255, 0.1);
+    height: 48px; /* Fixed height to prevent bottom gap */
 }
 
 .toggle-group input[type="radio"] {
@@ -1336,18 +1326,23 @@ body {
 
 .toggle-label {
     flex: 1;
-    padding: 12px 16px;
+    padding: 16px; /* Equal padding on all sides */
     text-align: center;
     cursor: pointer;
     transition: var(--transition);
     color: var(--text-secondary);
     font-weight: 500;
     font-size: 14px;
+    line-height: 1; /* Remove line height spacing */
     
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    
+    /* Perfect centering */
+    box-sizing: border-box;
+    height: 48px; /* Match container height exactly */
 }
 
 .toggle-group input[type="radio"]:checked + .toggle-label {
@@ -1378,8 +1373,15 @@ body {
     flex-shrink: 0;
 }
 
+/* Hide remove buttons for first two options */
+.option-item:nth-child(1) .remove-option,
+.option-item:nth-child(2) .remove-option {
+    display: none !important;
+}
+
+/* Remove option icons completely */
 .option-icon {
-    color: var(--primary);
+    display: none !important;
 }
 
 /* Auth Switch */

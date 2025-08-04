@@ -169,9 +169,6 @@ class API {
         return this.get(`/api/topics/${shareCode}/share-code`);
     }
 
-    async joinByShareCode(shareCode) {
-        return this.post(`/api/topics/join/${shareCode}`);
-    }
 }
 
 // Global API instance

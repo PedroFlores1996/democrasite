@@ -46,6 +46,12 @@ class UIManager {
                 modal.classList.remove('show');
             }
         });
+
+        // Hide search bar by default (shown only when authenticated)
+        const searchContainer = document.querySelector('.nav-center');
+        if (searchContainer) {
+            searchContainer.classList.add('hidden');
+        }
     }
 
     setupModals() {
@@ -84,7 +90,7 @@ class UIManager {
             exploreBtn.addEventListener('click', () => {
                 if (!authManager.isAuthenticated) {
                     showAuthModal('login');
-                    showToast('Please log in to explore topics', 'info');
+                    showToast('Create an account or sign in to explore topics', 'info');
                     return;
                 }
                 this.showSection('topicsDashboard');
@@ -96,8 +102,8 @@ class UIManager {
         if (createTopicHeroBtn) {
             createTopicHeroBtn.addEventListener('click', () => {
                 if (!authManager.isAuthenticated) {
-                    showAuthModal('register');
-                    showToast('Create an account to start your first topic', 'info');
+                    showAuthModal('login');
+                    showToast('Sign in or create an account to start creating topics', 'info');
                     return;
                 }
                 this.showCreateTopicModal();
@@ -135,6 +141,8 @@ class UIManager {
                 // Small delay to let the UI settle
                 setTimeout(() => {
                     topicsManager.loadTopics(topicsManager.searchQuery);
+                    // Also refresh dashboard stats to show updated counts
+                    authManager.loadDashboardStats();
                 }, 100);
             }
         }
@@ -327,33 +335,3 @@ window.showCreateTopicModal = () => uiManager.showCreateTopicModal();
 window.showToast = (message, type, duration) => uiManager.showToast(message, type, duration);
 window.confirm = (message, title) => uiManager.confirm(message, title);
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    // Handle URL parameters on page load
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Check for topic parameter
-    const topicId = urlParams.get('topic');
-    if (topicId) {
-        showTopic(topicId);
-    }
-    
-    // Check for share code parameter
-    const shareCode = urlParams.get('share');
-    if (shareCode) {
-        handleShareCode(shareCode);
-    }
-});
-
-// Handle share code
-async function handleShareCode(shareCode) {
-    try {
-        const response = await api.joinByShareCode(shareCode);
-        showToast('Joined topic successfully!', 'success');
-        showTopic(response.topic_id);
-    } catch (error) {
-        console.error('Error joining via share code:', error);
-        showToast('Invalid or expired share code', 'error');
-        showSection('commandCenter');
-    }
-}

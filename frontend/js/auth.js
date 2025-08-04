@@ -82,6 +82,7 @@ class AuthManager {
         const userMenu = document.getElementById('userMenu');
         const usernameSpan = document.getElementById('username');
         const userInitials = document.getElementById('userInitials');
+        const searchContainer = document.querySelector('.nav-center');
 
         if (this.isAuthenticated && this.currentUser) {
             loginBtn.classList.add('hidden');
@@ -90,6 +91,11 @@ class AuthManager {
             usernameSpan.textContent = this.currentUser.username;
             if (userInitials) {
                 userInitials.textContent = this.currentUser.username.charAt(0).toUpperCase();
+            }
+            
+            // Show search bar for authenticated users
+            if (searchContainer) {
+                searchContainer.classList.remove('hidden');
             }
             
             // Update command center for authenticated users
@@ -101,6 +107,11 @@ class AuthManager {
             loginBtn.classList.remove('hidden');
             registerBtn.classList.remove('hidden');
             userMenu.classList.add('hidden');
+            
+            // Hide search bar for unauthenticated users
+            if (searchContainer) {
+                searchContainer.classList.add('hidden');
+            }
             
             // Update command center for guests
             this.updateCommandCenterForGuest();
@@ -139,25 +150,25 @@ class AuthManager {
         // Reset subtitle to general message
         const subtitle = document.querySelector('.command-center .subtitle');
         if (subtitle) {
-            subtitle.textContent = 'Join the digital democracy! Log in to participate in collective decision-making.';
+            subtitle.textContent = 'Join the digital democracy! Register to participate in collective decision-making.';
         }
         
-        // Update buttons to show they require authentication
+        // Update buttons to show what the platform offers
         const exploreBtn = document.getElementById('exploreTopics');
         const createBtn = document.getElementById('createTopicHero');
         
         if (exploreBtn) {
             exploreBtn.innerHTML = `
-                <i class="fas fa-sign-in-alt"></i>
-                <span>Sign In to Explore</span>
+                <i class="fas fa-compass"></i>
+                <span>Explore Topics</span>
                 <div class="btn-glow"></div>
             `;
         }
         
         if (createBtn) {
             createBtn.innerHTML = `
-                <i class="fas fa-user-plus"></i>
-                <span>Join to Create</span>
+                <i class="fas fa-plus"></i>
+                <span>Create Topic</span>
                 <div class="btn-glow"></div>
             `;
         }
@@ -166,13 +177,12 @@ class AuthManager {
     async loadDashboardStats() {
         try {
             // Get topics to calculate stats
-            const topicsData = await api.getTopics('', '', 1000, 1); // Get many topics for stats
+            const topicsData = await api.getTopics('', '', 100, 1); // Get topics for stats (max 100)
             
             // Update stats cards
             const activeTopicsEl = document.querySelector('[data-count="0"]');
             const votesCastEl = document.querySelectorAll('[data-count="0"]')[1];
             const participantsEl = document.querySelectorAll('[data-count="0"]')[2];
-            const engagementEl = document.querySelectorAll('[data-count="0"]')[3];
             
             if (activeTopicsEl) {
                 activeTopicsEl.setAttribute('data-count', topicsData.total || 0);
@@ -199,15 +209,6 @@ class AuthManager {
             if (participantsEl) {
                 participantsEl.setAttribute('data-count', totalParticipants.size);
                 participantsEl.textContent = totalParticipants.size;
-            }
-            
-            // Calculate engagement (topics with votes / total topics * 100)
-            const engagementRate = topicsData.total > 0 ? 
-                Math.round((topicsData.topics?.filter(t => (t.total_votes || 0) > 0).length || 0) / topicsData.total * 100) : 0;
-            
-            if (engagementEl) {
-                engagementEl.setAttribute('data-count', engagementRate);
-                engagementEl.textContent = engagementRate;
             }
             
         } catch (error) {
@@ -252,9 +253,18 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Welcome back! 🎉', 'success');
             loginForm.reset();
             
-            // Show topics dashboard
-            showSection('topicsDashboard');
-            loadTopics();
+            // Check for pending share code
+            const pendingShareCode = sessionStorage.getItem('pendingShareCode');
+            if (pendingShareCode) {
+                sessionStorage.removeItem('pendingShareCode');
+                showTopic(pendingShareCode);
+                showSection('topicDetail');
+                showToast('Topic accessed successfully!', 'success');
+            } else {
+                // Show topics dashboard
+                showSection('topicsDashboard');
+                loadTopics();
+            }
         } catch (error) {
             showToast(error.message, 'error');
         } finally {
@@ -288,9 +298,18 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Welcome to Democrasite! 🚀', 'success');
             registerForm.reset();
             
-            // Show topics dashboard after registration
-            showSection('topicsDashboard');
-            loadTopics();
+            // Check for pending share code
+            const pendingShareCode = sessionStorage.getItem('pendingShareCode');
+            if (pendingShareCode) {
+                sessionStorage.removeItem('pendingShareCode');
+                showTopic(pendingShareCode);
+                showSection('topicDetail');
+                showToast('Topic accessed successfully!', 'success');
+            } else {
+                // Show topics dashboard after registration
+                showSection('topicsDashboard');
+                loadTopics();
+            }
         } catch (error) {
             showToast(error.message, 'error');
         } finally {

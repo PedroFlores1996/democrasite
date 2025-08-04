@@ -5,9 +5,10 @@ class TopicsManager {
         this.currentTopic = null;
         this.searchQuery = '';
         this.selectedAnswer = null;
+        this.currentFilter = 'all';
     }
 
-    async loadTopics(search = '') {
+    async loadTopics(search = '', showErrors = true) {
         try {
             // Check if user is authenticated first
             if (!authManager.isAuthenticated) {
@@ -30,9 +31,13 @@ class TopicsManager {
                 // Clear authentication state and redirect to login
                 authManager.logout();
                 this.renderUnauthenticatedState();
-                showToast('Please log in to view topics', 'warning');
+                if (showErrors) {
+                    showToast('Please log in to view topics', 'warning');
+                }
             } else {
-                showToast(`Error loading topics: ${error.message}`, 'error');
+                if (showErrors) {
+                    showToast(`Error loading topics: ${error.message}`, 'error');
+                }
                 this.topics = [];
                 this.renderTopics();
             }
@@ -86,8 +91,9 @@ class TopicsManager {
 
     renderTopics() {
         const grid = document.getElementById('topicsGrid');
+        const filteredTopics = this.getFilteredTopics();
         
-        if (this.topics.length === 0) {
+        if (filteredTopics.length === 0) {
             grid.innerHTML = `
                 <div class="no-topics" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
                     <i class="fas fa-vote-yea" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
@@ -101,7 +107,7 @@ class TopicsManager {
             return;
         }
 
-        grid.innerHTML = this.topics.map((topic, index) => `
+        grid.innerHTML = filteredTopics.map((topic, index) => `
             <div class="topic-card" onclick="showTopic('${topic.share_code || topic.id}')" style="animation-delay: ${index * 0.1}s">
                 <div class="topic-card-header">
                     <div class="topic-meta">
@@ -109,8 +115,12 @@ class TopicsManager {
                             <i class="fas fa-${topic.is_public ? 'globe' : 'lock'}"></i>
                             ${topic.is_public ? 'Public' : 'Private'}
                         </span>
-                        ${topic.tags && topic.tags.length > 0 ? topic.tags.slice(0, 2).map(tag => `<span class="topic-tag">${this.escapeHtml(tag)}</span>`).join('') : ''}
                     </div>
+                    ${topic.tags && topic.tags.length > 0 ? `
+                        <div class="topic-tags">
+                            ${topic.tags.slice(0, 2).map(tag => `<span class="topic-tag">${this.escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                    ` : ''}
                 </div>
                 
                 <div class="topic-content">
@@ -153,7 +163,21 @@ class TopicsManager {
             showSection('topicDetail');
         } catch (error) {
             console.error('Error loading topic:', error);
-            showToast('Error loading topic', 'error');
+            
+            // Check if it's an access denied error (403) or not found (404)
+            if (error.message.includes('403') || error.message.includes('Access denied') || 
+                error.message.includes('404') || error.message.includes('Not found')) {
+                showToast('Topic not found or access denied', 'error');
+                // Stay on dashboard if user is authenticated, otherwise go to command center
+                if (authManager.isAuthenticated) {
+                    showSection('topicsDashboard');
+                    loadTopics();
+                } else {
+                    showSection('commandCenter');
+                }
+            } else {
+                showToast('Error loading topic', 'error');
+            }
         }
     }
 
@@ -293,7 +317,9 @@ class TopicsManager {
             // Reload topic to get updated results
             await this.showTopic(this.currentTopic.share_code);
             
-            // Topics will be refreshed automatically when navigating back to dashboard
+            // Force refresh the topics list in background to update vote counts
+            await this.refreshTopicsData();
+            
         } catch (error) {
             console.error('Error submitting vote:', error);
             showToast(error.message, 'error');
@@ -331,6 +357,29 @@ class TopicsManager {
         }
     }
 
+    // Apply filter to topics
+    applyFilter(filter) {
+        this.currentFilter = filter;
+        this.renderTopics();
+    }
+
+    // Get filtered topics based on current filter
+    getFilteredTopics() {
+        if (this.currentFilter === 'all') {
+            return this.topics;
+        } else if (this.currentFilter === 'public') {
+            return this.topics.filter(topic => topic.is_public);
+        } else if (this.currentFilter === 'private') {
+            return this.topics.filter(topic => !topic.is_public);
+        } else if (this.currentFilter === 'trending') {
+            // Sort by vote count descending and take topics with > 0 votes
+            return this.topics
+                .filter(topic => (topic.total_votes || 0) > 0)
+                .sort((a, b) => (b.total_votes || 0) - (a.total_votes || 0));
+        }
+        return this.topics;
+    }
+
     // Utility methods
     escapeHtml(text) {
         const div = document.createElement('div');
@@ -351,6 +400,9 @@ class TopicsManager {
 // Initialize topics manager
 const topicsManager = new TopicsManager();
 
+// Make topicsManager globally accessible
+window.topicsManager = topicsManager;
+
 // Global functions for event handlers
 window.loadTopics = () => topicsManager.loadTopics();
 window.showTopic = (id) => topicsManager.showTopic(id);
@@ -367,7 +419,8 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
-                topicsManager.loadTopics(e.target.value);
+                // Suppress error messages during search to avoid spam
+                topicsManager.loadTopics(e.target.value, false);
             }, 300);
         });
     }
@@ -424,19 +477,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Share topic button
     document.getElementById('shareTopicBtn').addEventListener('click', async () => {
-        if (!topicsManager.currentTopic) return;
+        if (!topicsManager.currentTopic) {
+            console.error('No current topic available for sharing');
+            showToast('No topic selected for sharing', 'error');
+            return;
+        }
         
         try {
+            if (!topicsManager.currentTopic.share_code) {
+                throw new Error('Topic does not have a share code');
+            }
+            
+            let shareUrl;
             if (topicsManager.currentTopic.is_public) {
                 // For public topics, just copy the URL with share code
-                const url = `${window.location.origin}${window.location.pathname}?topic=${topicsManager.currentTopic.share_code}`;
-                await navigator.clipboard.writeText(url);
-                showToast('Topic URL copied to clipboard!', 'success');
+                shareUrl = `${window.location.origin}${window.location.pathname}?topic=${topicsManager.currentTopic.share_code}`;
             } else {
                 // For private topics, use existing share code or get a new one
-                const shareCode = topicsManager.currentTopic.share_code;
-                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${shareCode}`;
+                shareUrl = `${window.location.origin}${window.location.pathname}?share=${topicsManager.currentTopic.share_code}`;
+            }
+            
+            // Try modern clipboard API first, fall back to legacy method
+            if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(shareUrl);
+            } else {
+                // Fallback for browsers that don't support clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = shareUrl;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                textArea.remove();
+            }
+            
+            if (topicsManager.currentTopic.is_public) {
+                showToast('Topic URL copied to clipboard!', 'success');
+            } else {
                 showToast('Share code copied to clipboard!', 'success');
             }
         } catch (error) {
@@ -452,7 +532,6 @@ function resetVotingOptions() {
     container.innerHTML = `
         <div class="option-item">
             <div class="input-wrapper">
-                <i class="fas fa-circle option-icon"></i>
                 <input type="text" placeholder="Option 1" required>
             </div>
             <button type="button" class="btn btn-ghost btn-sm remove-option">
@@ -461,7 +540,6 @@ function resetVotingOptions() {
         </div>
         <div class="option-item">
             <div class="input-wrapper">
-                <i class="fas fa-circle option-icon"></i>
                 <input type="text" placeholder="Option 2" required>
             </div>
             <button type="button" class="btn btn-ghost btn-sm remove-option">

@@ -97,22 +97,21 @@ class App {
             if (!authManager.isAuthenticated) {
                 // Store share code and prompt for login
                 sessionStorage.setItem('pendingShareCode', shareCode);
-                showToast('Please log in to join this topic', 'info');
+                showToast('Please log in to access this topic', 'info');
                 showAuthModal('login');
                 return;
             }
             
-            const response = await api.joinByShareCode(shareCode);
-            showToast('Successfully joined the topic!', 'success');
-            showTopic(response.topic_id);
+            // Try to access the topic directly using the share code
+            showTopic(shareCode);
             
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
             
         } catch (error) {
             console.error('Error handling share code:', error);
-            showToast('Invalid or expired share code', 'error');
-            showSection('commandCenter');
+            // The showTopic method will handle the specific error message and navigation
+            // This catch block is mainly for other unexpected errors
         }
     }
 
@@ -257,9 +256,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add active to clicked chip
             e.target.classList.add('active');
             
-            // TODO: Implement filtering logic based on data-filter attribute
+            // Apply the filter by calling topicsManager
             const filter = e.target.getAttribute('data-filter');
-            console.log('Filter selected:', filter);
+            if (window.topicsManager) {
+                window.topicsManager.applyFilter(filter);
+            }
         });
     });
 
@@ -274,7 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
             optionDiv.className = 'option-item';
             optionDiv.innerHTML = `
                 <div class="input-wrapper">
-                    <i class="fas fa-circle option-icon"></i>
                     <input type="text" placeholder="Option ${optionCount}" required>
                 </div>
                 <button type="button" class="btn btn-ghost btn-sm remove-option">

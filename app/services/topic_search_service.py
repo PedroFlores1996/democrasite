@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
 
-from app.db.models import Topic, Vote, User
+from app.db.models import Topic, User, TopicAccess
 from app.schemas import SortOption, TopicSummary, TopicsSearchResponse
 
 
@@ -12,6 +12,7 @@ class TopicSearchService:
     def search_topics(
         self,
         db: Session,
+        current_user: User,
         page: int = 1,
         limit: int = 20,
         title: Optional[str] = None,
@@ -19,10 +20,11 @@ class TopicSearchService:
         sort: SortOption = SortOption.popular
     ) -> TopicsSearchResponse:
         """
-        Search public topics with filtering, pagination, and sorting
+        Search topics for authenticated user with filtering, pagination, and sorting.
+        Shows: public topics + private topics user created + private topics user has access to.
         """
         # Build the query
-        query = self._build_search_query(db, title, tags, sort)
+        query = self._build_search_query(db, current_user, title, tags, sort)
         
         # Get total count before pagination
         total = query.count()
@@ -49,17 +51,32 @@ class TopicSearchService:
     def _build_search_query(
         self,
         db: Session,
+        current_user: User,
         title: Optional[str],
         tags: Optional[str],
         sort: SortOption
     ):
         """Build the base search query with filters and sorting"""
-        # Start with public topics only
-        query = db.query(Topic).filter(Topic.is_public == True)
+        # Show public topics + private topics user has access to + topics created by user
+        query = db.query(Topic).filter(
+            or_(
+                Topic.is_public == True,  # Public topics
+                Topic.created_by == current_user.id,  # Topics created by user
+                Topic.id.in_(  # Private topics user has access to
+                    db.query(TopicAccess.topic_id)
+                    .filter(TopicAccess.user_id == current_user.id)
+                )
+            )
+        )
         
-        # Add title search filter
+        # Add title and share code search filter
         if title:
-            query = query.filter(Topic.title.ilike(f"%{title}%"))
+            query = query.filter(
+                or_(
+                    Topic.title.ilike(f"%{title}%"),
+                    Topic.share_code.ilike(f"%{title}%")
+                )
+            )
         
         # Add tags filter
         if tags:
@@ -87,16 +104,8 @@ class TopicSearchService:
         if sort == SortOption.recent:
             return query.order_by(desc(Topic.created_at))
         else:  # popular or votes
-            # Subquery to count votes per topic
-            vote_counts = (
-                db.query(Vote.topic_id, func.count(Vote.id).label("vote_count"))
-                .group_by(Vote.topic_id)
-                .subquery()
-            )
-            
-            return query.outerjoin(
-                vote_counts, Topic.id == vote_counts.c.topic_id
-            ).order_by(desc(func.coalesce(vote_counts.c.vote_count, 0)))
+            # Use denormalized vote_count for sorting
+            return query.order_by(desc(Topic.vote_count))
     
     def _paginate_query(self, query, page: int, limit: int):
         """Apply pagination to the query"""
@@ -108,20 +117,13 @@ class TopicSearchService:
         topic_summaries = []
         
         for topic in topics:
-            # Get vote count for this topic
-            vote_count = (
-                db.query(func.count(Vote.id))
-                .filter(Vote.topic_id == topic.id)
-                .scalar()
-            )
-            
             topic_summaries.append(
                 TopicSummary(
                     id=topic.id,
                     title=topic.title,
                     share_code=topic.share_code,
                     created_at=topic.created_at,
-                    total_votes=vote_count,
+                    total_votes=topic.vote_count or 0,  # Use denormalized count
                     answer_count=len(topic.answers) if topic.answers else 0,
                     tags=topic.tags or [],
                     creator_username=topic.creator.username,

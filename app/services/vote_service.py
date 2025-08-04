@@ -89,10 +89,17 @@ class VoteService:
         )
         
         if existing_vote:
+            # Just updating choice, no need to change count
             existing_vote.choice = choice
         else:
+            # New vote, increment the denormalized counter
             db_vote = Vote(user_id=user_id, topic_id=topic_id, choice=choice)
             db.add(db_vote)
+            
+            # Increment vote count on topic
+            topic = db.query(Topic).filter(Topic.id == topic_id).first()
+            if topic:
+                topic.vote_count = (topic.vote_count or 0) + 1
         
         db.commit()
 
