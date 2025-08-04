@@ -90,6 +90,7 @@ class SortOption(str, Enum):
     popular = "popular"      # Most votes total
     recent = "recent"        # Most recently created
     votes = "votes"          # Most votes (alias for popular)
+    favorites = "favorites"  # Most favorited
 
 class TopicSummary(BaseModel):
     """Lightweight topic info for search results"""
@@ -99,6 +100,7 @@ class TopicSummary(BaseModel):
     created_at: datetime
     total_votes: int
     answer_count: int
+    favorite_count: int
     tags: List[str] = []
     creator_username: str
     is_public: bool

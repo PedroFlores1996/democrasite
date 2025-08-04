@@ -7,6 +7,7 @@ from app.config.settings import settings
 from app.db.database import create_tables
 from app.auth.routes import router as auth_router
 from app.topics.routes import router as topics_router
+from app.favorites.routes import router as favorites_router
 
 app = FastAPI(
     title=settings.API_TITLE, 
@@ -28,6 +29,7 @@ app.add_middleware(
 # Include API routers with prefix
 app.include_router(auth_router, prefix="/api")
 app.include_router(topics_router, prefix="/api")
+app.include_router(favorites_router, prefix="/api")
 
 # Serve static files (frontend)
 app.mount("/static", StaticFiles(directory="frontend"), name="static")

@@ -378,6 +378,33 @@ body {
     color: var(--primary-hover);
 }
 
+/* Danger Button */
+.btn-danger {
+    color: var(--error);
+    border-color: transparent;
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+    border-color: var(--error);
+}
+
+/* Favorite Button States */
+.btn-favorite {
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.btn-favorite.favorited {
+    color: var(--warning);
+}
+
+.btn-favorite:hover {
+    color: var(--warning);
+    transform: translateY(-2px);
+}
+
 /* Button Sizes */
 .btn-sm {
     padding: 8px 12px;

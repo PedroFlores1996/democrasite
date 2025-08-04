@@ -32,6 +32,9 @@ class TopicCreationService:
         # Generate and assign share code
         share_code = self._assign_share_code(db, db_topic)
         
+        # Auto-favorite the topic for its creator
+        self._auto_favorite_for_creator(db, db_topic, current_user)
+        
         return {
             "id": db_topic.id,
             "share_code": share_code,
@@ -90,6 +93,18 @@ class TopicCreationService:
         db.refresh(topic)
         
         return share_code
+    
+    def _auto_favorite_for_creator(self, db: Session, topic: Topic, creator: User):
+        """
+        Automatically add the topic to the creator's favorites
+        """
+        # Add to favorites using relationship
+        creator.favorite_topics.append(topic)
+        
+        # Update denormalized favorite count
+        topic.favorite_count = 1  # Creator is first favorite
+        
+        db.commit()
 
 
 # Singleton instance

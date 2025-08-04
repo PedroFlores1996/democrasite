@@ -186,6 +186,10 @@
                             <i class="fas fa-fire"></i>
                             Trending
                         </button>
+                        <button class="chip" data-filter="favorites">
+                            <i class="fas fa-star"></i>
+                            Favorites
+                        </button>
                     </div>
 
                     <div class="dashboard-actions">
@@ -194,6 +198,7 @@
                                 <option value="recent">Recently Created</option>
                                 <option value="popular">Most Popular</option>
                                 <option value="votes">Most Votes</option>
+                                <option value="favorites">Most Favorited</option>
                                 <option value="alphabetical">A-Z</option>
                             </select>
                         </div>
@@ -228,8 +233,11 @@
                         <i class="fas fa-share-alt"></i>
                         Share
                     </button>
-                    <button class="btn btn-ghost">
-                        <i class="fas fa-bookmark"></i>
+                    <button id="favoriteTopicBtn" class="btn btn-ghost" title="Add to favorites">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button id="deleteTopicBtn" class="btn btn-ghost btn-danger hidden" title="Delete topic">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>

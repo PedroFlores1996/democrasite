@@ -125,10 +125,11 @@ class API {
     }
 
     // Topic endpoints
-    async getTopics(search = '', tags = '', limit = 20, page = 1) {
+    async getTopics(search = '', tags = '', sort = 'popular', limit = 20, page = 1) {
         const params = new URLSearchParams();
         if (search) params.append('title', search);  // Backend expects 'title' not 'search'
         if (tags) params.append('tags', tags);
+        if (sort) params.append('sort', sort);
         params.append('limit', limit.toString());
         params.append('page', page.toString());      // Backend expects 'page' not 'skip'
         
@@ -172,6 +173,19 @@ class API {
     // Add option to editable topic
     async addOptionToTopic(shareCode, option) {
         return this.post(`/api/topics/${shareCode}/options`, { option });
+    }
+
+    // Favorites endpoints
+    async getFavorites() {
+        return this.get('/api/favorites');
+    }
+
+    async addToFavorites(shareCode) {
+        return this.post(`/api/favorites/${shareCode}`);
+    }
+
+    async removeFromFavorites(shareCode) {
+        return this.delete(`/api/favorites/${shareCode}`);
     }
 
 }

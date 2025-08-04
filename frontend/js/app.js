@@ -264,6 +264,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Sort dropdown functionality
+    const sortDropdown = document.getElementById('sortBy');
+    if (sortDropdown) {
+        sortDropdown.addEventListener('change', (e) => {
+            const sort = e.target.value;
+            if (window.topicsManager) {
+                window.topicsManager.applySort(sort);
+            }
+        });
+    }
+
     // Add option button in create topic modal
     const addOptionBtn = document.getElementById('addOptionBtn');
     if (addOptionBtn) {

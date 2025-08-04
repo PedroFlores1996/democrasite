@@ -103,6 +103,9 @@ class TopicSearchService:
         """Add sorting to the query"""
         if sort == SortOption.recent:
             return query.order_by(desc(Topic.created_at))
+        elif sort == SortOption.favorites:
+            # Sort by favorite count
+            return query.order_by(desc(Topic.favorite_count))
         else:  # popular or votes
             # Use denormalized vote_count for sorting
             return query.order_by(desc(Topic.vote_count))
@@ -125,6 +128,7 @@ class TopicSearchService:
                     created_at=topic.created_at,
                     total_votes=topic.vote_count or 0,  # Use denormalized count
                     answer_count=len(topic.answers) if topic.answers else 0,
+                    favorite_count=topic.favorite_count or 0,  # Use denormalized count
                     tags=topic.tags or [],
                     creator_username=topic.creator.username,
                     is_public=topic.is_public

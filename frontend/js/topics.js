@@ -6,6 +6,8 @@ class TopicsManager {
         this.searchQuery = '';
         this.selectedAnswer = null;
         this.currentFilter = 'all';
+        this.currentSort = 'popular';
+        this.favorites = new Set(); // Track favorite topic share codes
     }
 
     async loadTopics(search = '', showErrors = true) {
@@ -17,9 +19,13 @@ class TopicsManager {
             }
 
             this.searchQuery = search;
-            const response = await api.getTopics(search);
+            const response = await api.getTopics(search, '', this.currentSort);
             // Extract topics array from the paginated response
             this.topics = Array.isArray(response) ? response : (response.topics || []);
+            
+            // Load favorites in parallel
+            await this.loadFavorites();
+            
             this.renderTopics();
         } catch (error) {
             console.error('Error loading topics:', error);
@@ -148,6 +154,10 @@ class TopicsManager {
                             <i class="fas fa-vote-yea"></i>
                             <span>${topic.total_votes || 0}</span>
                         </div>
+                        <div class="stat-item">
+                            <i class="fas fa-star"></i>
+                            <span>${topic.favorite_count || 0}</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -209,6 +219,12 @@ class TopicsManager {
         } else {
             tagsContainer.innerHTML = '';
         }
+
+        // Show/hide delete button based on creator status
+        this.updateDeleteButton();
+        
+        // Update favorite button state
+        this.updateFavoriteButton();
 
         this.renderVotingSection();
     }
@@ -379,7 +395,7 @@ class TopicsManager {
     // Silently refresh topics data to update vote counts
     async refreshTopicsData() {
         try {
-            const response = await api.getTopics(this.searchQuery);
+            const response = await api.getTopics(this.searchQuery, '', this.currentSort);
             this.topics = Array.isArray(response) ? response : (response.topics || []);
         } catch (error) {
             // Silently fail - don't show error to user for background refresh
@@ -391,6 +407,12 @@ class TopicsManager {
     applyFilter(filter) {
         this.currentFilter = filter;
         this.renderTopics();
+    }
+
+    // Apply sort to topics
+    async applySort(sort) {
+        this.currentSort = sort;
+        await this.loadTopics(this.searchQuery);
     }
 
     // Get filtered topics based on current filter
@@ -406,6 +428,9 @@ class TopicsManager {
             return this.topics
                 .filter(topic => (topic.total_votes || 0) > 0)
                 .sort((a, b) => (b.total_votes || 0) - (a.total_votes || 0));
+        } else if (this.currentFilter === 'favorites') {
+            // Filter topics that are in user's favorites
+            return this.topics.filter(topic => this.favorites.has(topic.share_code));
         }
         return this.topics;
     }
@@ -429,6 +454,102 @@ class TopicsManager {
         } catch (error) {
             console.error('Error adding option:', error);
             showToast(error.message || 'Error adding option', 'error');
+        }
+    }
+
+    // Delete topic functionality
+    async deleteTopic(shareCode) {
+        try {
+            authManager.requireAuth();
+            
+            if (!confirm('Are you sure you want to delete this topic? This action cannot be undone.')) {
+                return;
+            }
+
+            await api.deleteTopic(shareCode);
+            showToast('Topic deleted successfully', 'success');
+            
+            // Navigate back to dashboard
+            showSection('topicsDashboard');
+            await this.loadTopics();
+            
+        } catch (error) {
+            console.error('Error deleting topic:', error);
+            showToast(error.message || 'Error deleting topic', 'error');
+        }
+    }
+
+    // Favorites functionality
+    async loadFavorites() {
+        try {
+            if (!authManager.isAuthenticated) return;
+            
+            const favorites = await api.getFavorites();
+            this.favorites = new Set(favorites.map(fav => fav.share_code));
+        } catch (error) {
+            console.error('Error loading favorites:', error);
+            // Don't show error to user, just fail silently
+        }
+    }
+
+    async toggleFavorite(shareCode) {
+        try {
+            authManager.requireAuth();
+            
+            const isFavorited = this.favorites.has(shareCode);
+            
+            
+            if (isFavorited) {
+                await api.removeFromFavorites(shareCode);
+                this.favorites.delete(shareCode);
+                showToast('Removed from favorites', 'success');
+            } else {
+                await api.addToFavorites(shareCode);
+                this.favorites.add(shareCode);
+                showToast('Added to favorites', 'success');
+            }
+            
+            // Update UI
+            this.updateFavoriteButton();
+            
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+            showToast(error.message || 'Error updating favorites', 'error');
+        }
+    }
+
+    updateDeleteButton() {
+        const deleteBtn = document.getElementById('deleteTopicBtn');
+        if (!deleteBtn || !this.currentTopic) return;
+        
+        // Show delete button only if current user is the creator
+        const currentUser = authManager.currentUser;
+        const isCreator = currentUser && currentUser.username === this.currentTopic.created_by;
+        
+        
+        if (isCreator) {
+            deleteBtn.classList.remove('hidden');
+        } else {
+            deleteBtn.classList.add('hidden');
+        }
+    }
+
+    updateFavoriteButton() {
+        const favoriteBtn = document.getElementById('favoriteTopicBtn');
+        if (!favoriteBtn || !this.currentTopic) return;
+        
+        const isFavorited = this.favorites.has(this.currentTopic.share_code);
+        
+        
+        if (isFavorited) {
+            favoriteBtn.classList.add('btn-favorite', 'favorited');
+            favoriteBtn.title = 'Remove from favorites';
+            favoriteBtn.innerHTML = '<i class="fas fa-star"></i>';
+        } else {
+            favoriteBtn.classList.add('btn-favorite');
+            favoriteBtn.classList.remove('favorited');
+            favoriteBtn.title = 'Add to favorites';
+            favoriteBtn.innerHTML = '<i class="far fa-star"></i>';
         }
     }
 
@@ -613,6 +734,24 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error sharing topic:', error);
             showToast('Error generating share link', 'error');
         }
+    });
+
+    // Favorite topic button
+    document.getElementById('favoriteTopicBtn').addEventListener('click', async () => {
+        if (!topicsManager.currentTopic) {
+            console.error('No current topic available for favoriting');
+            return;
+        }
+        await topicsManager.toggleFavorite(topicsManager.currentTopic.share_code);
+    });
+
+    // Delete topic button
+    document.getElementById('deleteTopicBtn').addEventListener('click', async () => {
+        if (!topicsManager.currentTopic) {
+            console.error('No current topic available for deletion');
+            return;
+        }
+        await topicsManager.deleteTopic(topicsManager.currentTopic.share_code);
     });
 });
 
