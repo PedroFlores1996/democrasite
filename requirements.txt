@@ -11,6 +11,7 @@ h11==0.16.0
 idna==3.10
 iniconfig==2.1.0
 packaging==25.0
+# passlib stable version with bcrypt compatibility patch in app/auth/utils.py
 passlib==1.7.4
 pluggy==1.6.0
 pycparser==2.22

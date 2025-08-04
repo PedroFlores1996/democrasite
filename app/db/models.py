@@ -23,6 +23,7 @@ class Topic(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)  # Add index for sorting
     answers = Column(JSON)  # List of available answers
     is_public = Column(Boolean, default=True, index=True)  # Add index for filtering public topics
+    is_editable = Column(Boolean, default=False)  # Allow others to add voting options
     share_code = Column(String, unique=True, index=True)  # Encrypted share code
     tags = Column(JSON, default=list)  # List of tags for categorization and search
     vote_count = Column(Integer, default=0)  # Denormalized vote count for performance

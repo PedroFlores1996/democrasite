@@ -169,6 +169,11 @@ class API {
         return this.get(`/api/topics/${shareCode}/share-code`);
     }
 
+    // Add option to editable topic
+    async addOptionToTopic(shareCode, option) {
+        return this.post(`/api/topics/${shareCode}/options`, { option });
+    }
+
 }
 
 // Global API instance

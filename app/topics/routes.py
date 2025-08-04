@@ -5,6 +5,7 @@ from typing import Optional
 from app.schemas import (
     TopicCreate,
     VoteSubmit,
+    OptionAdd,
     TopicResponse,
     UserManagement,
     UserManagementResponse,
@@ -19,6 +20,7 @@ from app.services.topic_creation_service import topic_creation_service
 from app.services.topic_search_service import topic_search_service
 from app.services.vote_service import vote_service
 from app.services.topic_user_service import topic_user_service
+from app.services.topic_option_service import topic_option_service
 
 router = APIRouter()
 
@@ -87,12 +89,25 @@ def get_topic(
         share_code=topic.share_code,
         answers=topic.answers,
         is_public=topic.is_public,
+        is_editable=topic.is_editable,
         created_at=topic.created_at,
         total_votes=total_votes,
         vote_breakdown=vote_breakdown,
         tags=topic.tags or [],
         created_by=topic.creator.username,
     )
+
+
+@router.post("/topics/{share_code}/options")
+def add_option_to_topic(
+    share_code: str,
+    option: OptionAdd,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Add a new voting option to an editable topic"""
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    return topic_option_service.add_option(db, topic, option, current_user)
 
 
 @router.post("/topics/{share_code}/users", response_model=UserManagementResponse)

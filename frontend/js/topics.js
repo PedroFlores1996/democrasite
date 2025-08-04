@@ -230,19 +230,49 @@ class TopicsManager {
 
         // Render voting options
         if (this.currentTopic.answers && this.currentTopic.answers.length > 0) {
-            votingOptions.innerHTML = this.currentTopic.answers.map((answer, index) => `
+            let optionsHTML = this.currentTopic.answers.map((answer, index) => `
                 <div class="voting-option" data-answer="${this.escapeHtml(answer)}" onclick="selectAnswer('${this.escapeHtml(answer)}')">
                     <div class="option-radio"></div>
                     <span class="option-text">${this.escapeHtml(answer)}</span>
                     <div class="option-glow"></div>
                 </div>
-            `).join('') + `
+            `).join('');
+
+            // Add "Add Option" section for editable topics
+            if (this.currentTopic.is_editable) {
+                optionsHTML += `
+                    <div class="add-option-section">
+                        <div class="add-option-form" id="addOptionForm" style="display: none;">
+                            <div class="input-wrapper">
+                                <input type="text" id="newOptionInput" placeholder="Enter new option..." maxlength="200">
+                            </div>
+                            <div class="add-option-buttons">
+                                <button class="btn btn-primary btn-sm" onclick="submitNewOption()">
+                                    <i class="fas fa-plus"></i>
+                                    Add
+                                </button>
+                                <button class="btn btn-ghost btn-sm" onclick="cancelAddOption()">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline btn-add-option" id="showAddOptionBtn" onclick="showAddOptionForm()">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Option</span>
+                        </button>
+                    </div>
+                `;
+            }
+
+            optionsHTML += `
                 <button class="btn btn-primary btn-vote" onclick="submitVote()" disabled>
                     <i class="fas fa-check"></i>
                     <span>Submit Vote</span>
                     <div class="btn-glow"></div>
                 </button>
             `;
+
+            votingOptions.innerHTML = optionsHTML;
         }
 
         // Render results if available
@@ -380,6 +410,28 @@ class TopicsManager {
         return this.topics;
     }
 
+    // Add new option to editable topic
+    async addOption(option) {
+        try {
+            authManager.requireAuth();
+            
+            if (!this.currentTopic) {
+                showToast('No topic selected', 'error');
+                return;
+            }
+
+            const response = await api.addOptionToTopic(this.currentTopic.share_code, option);
+            showToast('Option added successfully!', 'success');
+            
+            // Reload topic to show the new option
+            await this.showTopic(this.currentTopic.share_code);
+            
+        } catch (error) {
+            console.error('Error adding option:', error);
+            showToast(error.message || 'Error adding option', 'error');
+        }
+    }
+
     // Utility methods
     escapeHtml(text) {
         const div = document.createElement('div');
@@ -408,6 +460,42 @@ window.loadTopics = () => topicsManager.loadTopics();
 window.showTopic = (id) => topicsManager.showTopic(id);
 window.selectAnswer = (answer) => topicsManager.selectAnswer(answer);
 window.submitVote = () => topicsManager.submitVote();
+
+// Global functions for add option functionality
+window.showAddOptionForm = () => {
+    const form = document.getElementById('addOptionForm');
+    const btn = document.getElementById('showAddOptionBtn');
+    if (form && btn) {
+        form.style.display = 'block';
+        btn.style.display = 'none';
+        document.getElementById('newOptionInput').focus();
+    }
+};
+
+window.cancelAddOption = () => {
+    const form = document.getElementById('addOptionForm');
+    const btn = document.getElementById('showAddOptionBtn');
+    const input = document.getElementById('newOptionInput');
+    if (form && btn && input) {
+        form.style.display = 'none';
+        btn.style.display = 'block';
+        input.value = '';
+    }
+};
+
+window.submitNewOption = async () => {
+    const input = document.getElementById('newOptionInput');
+    if (!input) return;
+    
+    const option = input.value.trim();
+    if (!option) {
+        showToast('Please enter an option', 'error');
+        return;
+    }
+    
+    await topicsManager.addOption(option);
+    window.cancelAddOption();
+};
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
@@ -439,6 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const description = document.getElementById('topicDescriptionInput').value;
         const tagsInput = document.getElementById('topicTagsInput').value;
         const visibility = document.querySelector('input[name="visibility"]:checked').value;
+        const editable = document.querySelector('input[name="editable"]:checked').value;
         
         // Get voting options
         const optionInputs = document.querySelectorAll('#votingOptionsContainer input');
@@ -461,6 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
             description: description || null,
             answers,
             is_public: visibility === 'public',
+            is_editable: editable === 'true',
             tags: tags.length > 0 ? tags : null
         };
 

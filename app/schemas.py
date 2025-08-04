@@ -15,6 +15,7 @@ class TopicCreate(BaseModel):
     title: str
     answers: List[str]
     is_public: bool = True
+    is_editable: bool = False  # Allow others to add voting options
     allowed_users: Optional[List[str]] = None  # List of usernames
     tags: Optional[List[str]] = []  # List of tags for categorization
     
@@ -38,6 +39,7 @@ class TopicResponse(BaseModel):
     share_code: str
     answers: List[str]
     is_public: bool
+    is_editable: bool
     created_at: datetime
     total_votes: int
     vote_breakdown: Dict[str, int]
@@ -49,6 +51,18 @@ class TopicResponse(BaseModel):
 
 class VoteSubmit(BaseModel):
     choice: str
+
+class OptionAdd(BaseModel):
+    option: str
+    
+    @field_validator('option')
+    @classmethod
+    def validate_option(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Option cannot be empty')
+        if len(v.strip()) > 200:
+            raise ValueError('Option must be 200 characters or less')
+        return v.strip()
 
 class Token(BaseModel):
     access_token: str

@@ -53,6 +53,7 @@ class TopicCreationService:
             created_by=current_user.id,
             answers=topic_data.answers,
             is_public=topic_data.is_public,
+            is_editable=topic_data.is_editable,
             tags=topic_data.tags or []
         )
         

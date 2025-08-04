@@ -1,3 +1,11 @@
+# Fix bcrypt compatibility issue with passlib
+import bcrypt
+import types
+if not hasattr(bcrypt, '__about__'):
+    about_module = types.ModuleType('__about__')
+    about_module.__version__ = bcrypt.__version__
+    bcrypt.__about__ = about_module
+
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordBearer
