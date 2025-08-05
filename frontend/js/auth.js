@@ -177,7 +177,7 @@ class AuthManager {
     async loadDashboardStats() {
         try {
             // Get topics to calculate stats
-            const topicsData = await api.getTopics('', '', 100, 1); // Get topics for stats (max 100)
+            const topicsData = await api.getTopics('', '', 'popular', 100, 1); // Get topics for stats (max 100)
             
             // Update stats cards
             const activeTopicsEl = document.querySelector('[data-count="0"]');

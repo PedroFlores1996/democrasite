@@ -410,7 +410,7 @@ body {
     display: flex;
     align-items: center;
     gap: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     padding: 1.5rem;
     background: var(--card-bg);
     border-radius: 12px;
@@ -446,7 +446,7 @@ body {
 }
 
 .profile-stats {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 .stat-row {
@@ -456,7 +456,7 @@ body {
 }
 
 .stat-item-profile {
-    padding: 1.5rem;
+    padding: 1rem;
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -470,16 +470,16 @@ body {
 }
 
 .stat-icon-profile {
-    font-size: 2rem;
+    font-size: 1.5rem;
     color: var(--primary);
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .stat-number-profile {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: bold;
     color: var(--text-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .stat-label-profile {
@@ -492,6 +492,7 @@ body {
     justify-content: center;
     padding-top: 1rem;
     border-top: 1px solid var(--border-color);
+    margin-top: 1rem;
 }
 
 /* Button Sizes */

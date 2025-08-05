@@ -356,6 +356,14 @@ document.addEventListener('DOMContentLoaded', () => {
             await uiManager.deleteAccount();
         });
     }
+
+    // Profile button
+    const profileBtn = document.getElementById('profileBtn');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', async () => {
+            await uiManager.showProfileModal();
+        });
+    }
 });
 
 // Export for testing/debugging
