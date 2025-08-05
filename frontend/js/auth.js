@@ -65,13 +65,13 @@ class AuthManager {
         this.currentUser = null;
         this.isAuthenticated = false;
         this.updateUI();
-        
+
         // Clear any cached data
         if (window.topicsManager) {
             topicsManager.topics = [];
             topicsManager.currentTopic = null;
         }
-        
+
         // Redirect to command center
         showSection('commandCenter');
     }
@@ -92,27 +92,27 @@ class AuthManager {
             if (userInitials) {
                 userInitials.textContent = this.currentUser.username.charAt(0).toUpperCase();
             }
-            
+
             // Show search bar for authenticated users
             if (searchContainer) {
                 searchContainer.classList.remove('hidden');
             }
-            
+
             // Update command center for authenticated users
             this.updateCommandCenterForAuth();
-            
+
             // Load real stats for authenticated users
             this.loadDashboardStats();
         } else {
             loginBtn.classList.remove('hidden');
             registerBtn.classList.remove('hidden');
             userMenu.classList.add('hidden');
-            
+
             // Hide search bar for unauthenticated users
             if (searchContainer) {
                 searchContainer.classList.add('hidden');
             }
-            
+
             // Update command center for guests
             this.updateCommandCenterForGuest();
         }
@@ -124,11 +124,11 @@ class AuthManager {
         if (subtitle) {
             subtitle.textContent = `Welcome back, ${this.currentUser.username}! Shape the future through collective decision-making.`;
         }
-        
+
         // Ensure buttons are enabled and show authenticated actions
         const exploreBtn = document.getElementById('exploreTopics');
         const createBtn = document.getElementById('createTopicHero');
-        
+
         if (exploreBtn) {
             exploreBtn.innerHTML = `
                 <i class="fas fa-compass"></i>
@@ -136,7 +136,7 @@ class AuthManager {
                 <div class="btn-glow"></div>
             `;
         }
-        
+
         if (createBtn) {
             createBtn.innerHTML = `
                 <i class="fas fa-plus"></i>
@@ -150,13 +150,13 @@ class AuthManager {
         // Reset subtitle to general message
         const subtitle = document.querySelector('.command-center .subtitle');
         if (subtitle) {
-            subtitle.textContent = 'Join the digital democracy! Register to participate in collective decision-making.';
+            subtitle.textContent = 'Ask, cast your vote, and uncover public opinion!';
         }
-        
+
         // Update buttons to show what the platform offers
         const exploreBtn = document.getElementById('exploreTopics');
         const createBtn = document.getElementById('createTopicHero');
-        
+
         if (exploreBtn) {
             exploreBtn.innerHTML = `
                 <i class="fas fa-compass"></i>
@@ -164,7 +164,7 @@ class AuthManager {
                 <div class="btn-glow"></div>
             `;
         }
-        
+
         if (createBtn) {
             createBtn.innerHTML = `
                 <i class="fas fa-plus"></i>
@@ -178,21 +178,21 @@ class AuthManager {
         try {
             // Get topics to calculate stats
             const topicsData = await api.getTopics('', '', 'popular', 100, 1); // Get topics for stats (max 100)
-            
+
             // Update stats cards
             const activeTopicsEl = document.querySelector('[data-count="0"]');
             const votesCastEl = document.querySelectorAll('[data-count="0"]')[1];
             const participantsEl = document.querySelectorAll('[data-count="0"]')[2];
-            
+
             if (activeTopicsEl) {
                 activeTopicsEl.setAttribute('data-count', topicsData.total || 0);
                 activeTopicsEl.textContent = topicsData.total || 0;
             }
-            
+
             // Calculate total votes from all topics
             let totalVotes = 0;
             let totalParticipants = new Set();
-            
+
             if (topicsData.topics) {
                 topicsData.topics.forEach(topic => {
                     totalVotes += topic.total_votes || 0;
@@ -200,17 +200,17 @@ class AuthManager {
                     totalParticipants.add(topic.creator_username);
                 });
             }
-            
+
             if (votesCastEl) {
                 votesCastEl.setAttribute('data-count', totalVotes);
                 votesCastEl.textContent = totalVotes;
             }
-            
+
             if (participantsEl) {
                 participantsEl.setAttribute('data-count', totalParticipants.size);
                 participantsEl.textContent = totalParticipants.size;
             }
-            
+
         } catch (error) {
             console.log('Could not load dashboard stats (user may not be authenticated)');
             // Keep default 0 values
@@ -235,24 +235,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const submitBtn = loginForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
-        
+
         try {
             // Add loading state
             submitBtn.classList.add('loading');
             submitBtn.textContent = 'Signing in...';
             submitBtn.disabled = true;
-            
+
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
-            
+
             await authManager.login(username, password);
             hideModal('authModal');
             showToast('Welcome back! 🎉', 'success');
             loginForm.reset();
-            
+
             // Check for pending share code
             const pendingShareCode = sessionStorage.getItem('pendingShareCode');
             if (pendingShareCode) {
@@ -279,25 +279,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerForm = document.getElementById('registerForm');
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const submitBtn = registerForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
-        
+
         try {
             // Add loading state
             submitBtn.classList.add('loading');
             submitBtn.textContent = 'Creating account...';
             submitBtn.disabled = true;
-            
+
             const username = document.getElementById('registerUsername').value;
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
-            
+
             await authManager.register(username, password, confirmPassword);
             hideModal('authModal');
             showToast('Welcome to Democrasite! 🚀', 'success');
             registerForm.reset();
-            
+
             // Check for pending share code
             const pendingShareCode = sessionStorage.getItem('pendingShareCode');
             if (pendingShareCode) {
