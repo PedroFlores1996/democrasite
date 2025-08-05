@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, or_
+from sqlalchemy import func, desc, asc, or_
 
 from app.db.models import Topic, User, TopicAccess
 from app.schemas import SortOption, TopicSummary, TopicsSearchResponse
@@ -69,12 +69,17 @@ class TopicSearchService:
             )
         )
         
-        # Add title and share code search filter
+        # Add title, share code, and tags search filter
         if title:
+            # Create tag condition for the title search term
+            title_lower = title.lower()
+            tag_condition = func.lower(func.json_extract(Topic.tags, '$')).like(f'%"{title_lower}"%')
+            
             query = query.filter(
                 or_(
                     Topic.title.ilike(f"%{title}%"),
-                    Topic.share_code.ilike(f"%{title}%")
+                    Topic.share_code.ilike(f"%{title}%"),
+                    tag_condition
                 )
             )
         
@@ -93,8 +98,9 @@ class TopicSearchService:
         tag_conditions = []
         
         for tag in tag_list:
+            # Use case-insensitive search by converting JSON field to lowercase
             tag_conditions.append(
-                func.json_extract(Topic.tags, '$').like(f'%"{tag}"%')
+                func.lower(func.json_extract(Topic.tags, '$')).like(f'%"{tag}"%')
             )
         
         return query.filter(or_(*tag_conditions))
@@ -106,6 +112,9 @@ class TopicSearchService:
         elif sort == SortOption.favorites:
             # Sort by favorite count
             return query.order_by(desc(Topic.favorite_count))
+        elif sort == SortOption.alphabetical:
+            # Sort by title A-Z
+            return query.order_by(asc(Topic.title))
         else:  # popular or votes
             # Use denormalized vote_count for sorting
             return query.order_by(desc(Topic.vote_count))

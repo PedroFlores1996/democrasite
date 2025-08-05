@@ -91,6 +91,7 @@ class SortOption(str, Enum):
     recent = "recent"        # Most recently created
     votes = "votes"          # Most votes (alias for popular)
     favorites = "favorites"  # Most favorited
+    alphabetical = "alphabetical"  # A-Z by title
 
 class TopicSummary(BaseModel):
     """Lightweight topic info for search results"""
