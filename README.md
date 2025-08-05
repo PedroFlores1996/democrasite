@@ -59,6 +59,68 @@ The API will be available at `http://localhost:8000`
 
 > **Note**: The CLI connects to the server, so make sure the server is running first.
 
+### Test Data Population
+
+To test the application with realistic data, you can populate the database with comprehensive test data:
+
+#### Local Development
+```bash
+# Populate database with test data
+python3 populate_db.py
+```
+
+#### Docker Container
+```bash
+# Option 1: Using the dedicated populate-db service (easiest)
+docker-compose --profile tools run --rm populate-db
+
+# Option 2: Execute in running container
+docker-compose exec democrasite python3 populate_db.py
+
+# Option 3: Run in standalone container
+docker run --rm -v democrasite_db:/app/data democrasite python3 populate_db.py
+```
+
+This will create:
+- **15 test users** with realistic usernames
+- **20+ diverse topics** covering technology, entertainment, lifestyle, travel, etc.
+- **Realistic voting patterns** (20-80% participation per topic)
+- **Favorite relationships** between users and topics
+- **Both public and private topics** for comprehensive testing
+
+#### Test User Credentials
+All test users have the password: `password123`
+
+Sample usernames:
+- `alice_cooper`
+- `bob_builder` 
+- `charlie_dev`
+- `diana_explorer`
+- `ethan_gamer`
+- ... and 10 more
+
+#### What Gets Created
+
+**Topic Categories:**
+- Technology (AI, programming, remote work)
+- Entertainment (streaming, movies, gaming)
+- Food & Lifestyle (coffee, vegetarian, health)
+- Travel (camping, solo vs group travel)
+- Education (skills, college, learning)
+- Environment (sustainability, climate change)
+- Sports (esports, Olympics, favorite sports)
+- Private topics (team decisions, office polls)
+
+**Realistic Data:**
+- Topics created over the past 30 days
+- Votes cast within a week of topic creation
+- Varied participation rates per topic
+- Favorite topics distributed across users
+- Mix of public and private topics
+- Some topics allow collaborative editing
+
+> **💡 Pro tip**: After populating test data, try searching for tags like "camping", "technology", or "gaming" to see the search functionality in action!
+
 #### Docker Commands
 
 ```bash

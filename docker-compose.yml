@@ -32,5 +32,17 @@ services:
   #   ports:
   #     - "5432:5432"
 
+  # Utility service to populate database with test data
+  populate-db:
+    build: .
+    volumes:
+      - democrasite_db:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///./data/democrasite.db
+    command: python3 populate_db.py
+    profiles:
+      - tools  # Only run when explicitly requested
+
 volumes:
   democrasite_db:
