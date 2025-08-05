@@ -59,14 +59,16 @@ def generate_test_topics():
             "answers": ["Yes, AI is more efficient", "No, humans provide better empathy", "Hybrid approach is best", "Only for simple queries"],
             "tags": ["TECHNOLOGY", "AI", "CUSTOMER SERVICE"],
             "is_public": True,
-            "is_editable": False
+            "is_editable": False,
+            "allow_multi_select": False
         },
         {
             "title": "Best programming language for beginners in 2024?",
             "answers": ["Python", "JavaScript", "Java", "C++", "Go", "Rust"],
             "tags": ["PROGRAMMING", "EDUCATION", "TECHNOLOGY"],
             "is_public": True,
-            "is_editable": True
+            "is_editable": True,
+            "allow_multi_select": True  # Allow multiple languages
         },
         {
             "title": "Remote work vs Office work - What's better?",
@@ -130,7 +132,8 @@ def generate_test_topics():
             "answers": ["Critical thinking", "Digital literacy", "Emotional intelligence", "Data analysis", "Communication", "Adaptability"],
             "tags": ["EDUCATION", "SKILLS", "CAREER"],
             "is_public": True,
-            "is_editable": True
+            "is_editable": True,
+            "allow_multi_select": True  # Can learn multiple skills
         },
         {
             "title": "Should college education be free?",
@@ -266,6 +269,7 @@ def create_topics(db, users, topics_data):
             tags=topic_data["tags"],
             is_public=topic_data["is_public"],
             is_editable=topic_data["is_editable"],
+            allow_multi_select=topic_data.get("allow_multi_select", False),
             created_by=creator.id,
             created_at=datetime.utcnow() - timedelta(days=random.randint(1, 30), hours=random.randint(0, 23)),
             share_code=f"topic_{i+1:03d}_{random.randint(1000, 9999)}"

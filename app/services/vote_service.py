@@ -22,11 +22,12 @@ class VoteService:
         # Check access permissions
         self._check_voting_permissions(db, topic, current_user)
         
-        # Validate choice
-        self._validate_vote_choice(topic, vote_data.choice)
+        # Validate choices
+        for choice in vote_data.choices:
+            self._validate_vote_choice(topic, choice)
         
-        # Submit or update vote
-        self._upsert_vote(db, topic.id, current_user.id, vote_data.choice)
+        # Submit or update votes
+        self._upsert_votes(db, topic, current_user.id, vote_data.choices)
         
         return {"message": "Vote submitted successfully"}
     
@@ -47,6 +48,17 @@ class VoteService:
         Get total number of votes for a topic
         """
         return db.query(Vote).filter(Vote.topic_id == topic_id).count()
+    
+    def get_user_votes(self, db: Session, topic_id: int, user_id: int) -> list[str]:
+        """
+        Get the current votes/choices for a specific user on a topic
+        """
+        votes = (
+            db.query(Vote)
+            .filter(Vote.topic_id == topic_id, Vote.user_id == user_id)
+            .all()
+        )
+        return [vote.choice for vote in votes]
     
     def _check_voting_permissions(self, db: Session, topic: Topic, current_user: User):
         """
@@ -102,27 +114,50 @@ class VoteService:
                 detail=f"Choice must be one of: {', '.join(topic.answers)}"
             )
     
-    def _upsert_vote(self, db: Session, topic_id: int, user_id: int, choice: str):
+    def _upsert_votes(self, db: Session, topic: Topic, user_id: int, choices: list):
         """
-        Insert new vote or update existing vote
+        Insert new votes or update existing votes for multi-select topics
         """
-        existing_vote = (
+        # Remove all existing votes for this user on this topic
+        existing_votes = (
             db.query(Vote)
-            .filter(Vote.user_id == user_id, Vote.topic_id == topic_id)
-            .first()
+            .filter(Vote.user_id == user_id, Vote.topic_id == topic.id)
+            .all()
         )
         
-        if existing_vote:
-            # Just updating choice, no need to change count
-            existing_vote.choice = choice
+        # Count votes before deletion for denormalized counter update
+        votes_before = len(existing_votes)
+        
+        # Delete existing votes
+        for vote in existing_votes:
+            db.delete(vote)
+        
+        # Flush to ensure deletions are committed before inserts
+        db.flush()
+        
+        # Add new votes
+        new_votes = []
+        for choice in choices:
+            if topic.allow_multi_select:
+                # For multi-select, create one vote per choice
+                new_vote = Vote(user_id=user_id, topic_id=topic.id, choice=choice)
+                new_votes.append(new_vote)
+                db.add(new_vote)
+            else:
+                # For single-select, only take the first choice
+                new_vote = Vote(user_id=user_id, topic_id=topic.id, choice=choices[0])
+                new_votes.append(new_vote)
+                db.add(new_vote)
+                break
+        
+        # Update denormalized vote count
+        # For single-select: count is number of users who voted
+        # For multi-select: count is number of individual vote choices
+        if topic.allow_multi_select:
+            topic.vote_count = (topic.vote_count or 0) - votes_before + len(new_votes)
         else:
-            # New vote, increment the denormalized counter
-            db_vote = Vote(user_id=user_id, topic_id=topic_id, choice=choice)
-            db.add(db_vote)
-            
-            # Increment vote count on topic
-            topic = db.query(Topic).filter(Topic.id == topic_id).first()
-            if topic:
+            # Single-select: if user had no vote before, increment by 1
+            if votes_before == 0:
                 topic.vote_count = (topic.vote_count or 0) + 1
         
         db.commit()

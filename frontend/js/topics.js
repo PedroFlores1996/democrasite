@@ -251,9 +251,13 @@ class TopicsManager {
 
         // Render voting options
         if (this.currentTopic.answers && this.currentTopic.answers.length > 0) {
+            const isMultiSelect = this.currentTopic.allow_multi_select;
+            const inputType = isMultiSelect ? 'checkbox' : 'radio';
+            const radioClass = isMultiSelect ? 'option-checkbox' : 'option-radio';
+            
             let optionsHTML = this.currentTopic.answers.map((answer, index) => `
-                <div class="voting-option" data-answer="${this.escapeHtml(answer)}" onclick="selectAnswer('${this.escapeHtml(answer)}')">
-                    <div class="option-radio"></div>
+                <div class="voting-option" data-answer="${this.escapeHtml(answer)}" onclick="selectAnswer('${this.escapeHtml(answer)}', ${isMultiSelect})">
+                    <div class="${radioClass}"></div>
                     <span class="option-text">${this.escapeHtml(answer)}</span>
                     <div class="option-glow"></div>
                 </div>
@@ -294,6 +298,9 @@ class TopicsManager {
             `;
 
             votingOptions.innerHTML = optionsHTML;
+            
+            // Pre-select user's current votes
+            this.preselectCurrentVotes();
         }
 
         // Render results if available
@@ -312,6 +319,9 @@ class TopicsManager {
             return;
         }
 
+        const isMultiSelect = this.currentTopic.allow_multi_select;
+        const voteLabel = isMultiSelect ? 'selections' : 'votes';
+        
         const resultsHTML = Object.entries(voteCounts)
             .sort(([, a], [, b]) => b - a) // Sort by vote count descending
             .map(([answer, count], index) => {
@@ -320,7 +330,7 @@ class TopicsManager {
                     <div class="result-item" style="animation: slideInLeft 0.5s ease-out ${index * 0.1}s both">
                         <div class="result-header">
                             <span class="result-text">${this.escapeHtml(answer)}</span>
-                            <span class="result-count">${count} votes (${percentage}%)</span>
+                            <span class="result-count">${count} ${voteLabel} (${percentage}%)</span>
                         </div>
                         <div class="result-bar">
                             <div class="result-fill" style="width: ${percentage}%"></div>
@@ -329,10 +339,51 @@ class TopicsManager {
                 `;
             }).join('');
 
+        const resultTitle = isMultiSelect 
+            ? `Results (${totalVotes} total selections)`
+            : `Results (${totalVotes} total votes)`;
+
         votingResults.innerHTML = `
-            <h4>Results (${totalVotes} total votes)</h4>
+            <h4>${resultTitle}</h4>
             ${resultsHTML}
         `;
+    }
+
+    preselectCurrentVotes() {
+        if (!this.currentTopic.user_votes || this.currentTopic.user_votes.length === 0) {
+            return;
+        }
+
+        const isMultiSelect = this.currentTopic.allow_multi_select;
+        
+        if (isMultiSelect) {
+            // For multi-select, initialize selectedAnswers and mark multiple options as selected
+            this.selectedAnswers = new Set(this.currentTopic.user_votes);
+            
+            // Mark each voted option as selected
+            this.currentTopic.user_votes.forEach(choice => {
+                const optionElement = document.querySelector(`[data-answer="${this.escapeHtml(choice)}"]`);
+                if (optionElement) {
+                    optionElement.classList.add('selected');
+                }
+            });
+        } else {
+            // For single-select, initialize selectedAnswer and mark one option as selected
+            this.selectedAnswer = this.currentTopic.user_votes[0];
+            this.selectedAnswers = null; // Clear multi-select
+            
+            // Mark the voted option as selected
+            const optionElement = document.querySelector(`[data-answer="${this.escapeHtml(this.selectedAnswer)}"]`);
+            if (optionElement) {
+                optionElement.classList.add('selected');
+            }
+        }
+        
+        // Enable submit button if user has votes
+        const submitBtn = document.querySelector('.btn-vote');
+        if (submitBtn && this.currentTopic.user_votes.length > 0) {
+            submitBtn.disabled = false;
+        }
     }
 
     async createTopic(topicData) {
@@ -357,13 +408,29 @@ class TopicsManager {
         try {
             authManager.requireAuth();
 
-            if (!this.selectedAnswer) {
-                showToast('Please select an answer', 'error');
-                return;
+            let choices = [];
+            
+            // Handle multi-select vs single-select
+            if (this.currentTopic.allow_multi_select) {
+                if (!this.selectedAnswers || this.selectedAnswers.size === 0) {
+                    showToast('Please select at least one answer', 'error');
+                    return;
+                }
+                choices = Array.from(this.selectedAnswers);
+            } else {
+                if (!this.selectedAnswer) {
+                    showToast('Please select an answer', 'error');
+                    return;
+                }
+                choices = [this.selectedAnswer];
             }
 
-            await api.vote(this.currentTopic.share_code, this.selectedAnswer);
-            showToast('Vote submitted successfully!', 'success');
+            await api.vote(this.currentTopic.share_code, choices);
+            
+            const message = choices.length > 1 
+                ? `Vote submitted successfully! (${choices.length} choices)`
+                : 'Vote submitted successfully!';
+            showToast(message, 'success');
 
             // Reload topic to get updated results
             await this.showTopic(this.currentTopic.share_code);
@@ -377,23 +444,51 @@ class TopicsManager {
         }
     }
 
-    selectAnswer(answer) {
-        this.selectedAnswer = answer;
+    selectAnswer(answer, isMultiSelect = false) {
+        if (isMultiSelect) {
+            // Handle multi-select
+            if (!this.selectedAnswers) {
+                this.selectedAnswers = new Set();
+            }
+            
+            const selectedOption = document.querySelector(`[data-answer="${this.escapeHtml(answer)}"]`);
+            if (selectedOption) {
+                if (this.selectedAnswers.has(answer)) {
+                    // Deselect
+                    this.selectedAnswers.delete(answer);
+                    selectedOption.classList.remove('selected');
+                } else {
+                    // Select
+                    this.selectedAnswers.add(answer);
+                    selectedOption.classList.add('selected');
+                }
+            }
+            
+            // Enable submit button if at least one option is selected
+            const submitBtn = document.querySelector('.btn-vote');
+            if (submitBtn) {
+                submitBtn.disabled = this.selectedAnswers.size === 0;
+            }
+        } else {
+            // Handle single-select (original behavior)
+            this.selectedAnswer = answer;
+            this.selectedAnswers = null; // Clear multi-select
 
-        // Update UI
-        document.querySelectorAll('.voting-option').forEach(option => {
-            option.classList.remove('selected');
-        });
+            // Update UI
+            document.querySelectorAll('.voting-option').forEach(option => {
+                option.classList.remove('selected');
+            });
 
-        const selectedOption = document.querySelector(`[data-answer="${this.escapeHtml(answer)}"]`);
-        if (selectedOption) {
-            selectedOption.classList.add('selected');
-        }
+            const selectedOption = document.querySelector(`[data-answer="${this.escapeHtml(answer)}"]`);
+            if (selectedOption) {
+                selectedOption.classList.add('selected');
+            }
 
-        // Enable submit button
-        const submitBtn = document.querySelector('.btn-vote');
-        if (submitBtn) {
-            submitBtn.disabled = false;
+            // Enable submit button
+            const submitBtn = document.querySelector('.btn-vote');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+            }
         }
     }
 
@@ -664,7 +759,7 @@ window.topicsManager = topicsManager;
 // Global functions for event handlers
 window.loadTopics = () => topicsManager.loadTopics();
 window.showTopic = (id) => topicsManager.showTopic(id);
-window.selectAnswer = (answer) => topicsManager.selectAnswer(answer);
+window.selectAnswer = (answer, isMultiSelect) => topicsManager.selectAnswer(answer, isMultiSelect);
 window.submitVote = () => topicsManager.submitVote();
 
 // Global functions for add option functionality
@@ -734,6 +829,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tagsInput = document.getElementById('topicTagsInput').value;
         const visibility = document.querySelector('input[name="visibility"]:checked').value;
         const editable = document.querySelector('input[name="editable"]:checked').value;
+        const multiSelect = document.querySelector('input[name="multiSelect"]:checked').value;
 
         // Get voting options
         const optionInputs = document.querySelectorAll('#votingOptionsContainer input');
@@ -757,6 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
             answers,
             is_public: visibility === 'public',
             is_editable: editable === 'true',
+            allow_multi_select: multiSelect === 'true',
             tags: tags.length > 0 ? tags : null
         };
 

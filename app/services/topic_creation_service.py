@@ -54,6 +54,7 @@ class TopicCreationService:
             answers=topic_data.answers,
             is_public=topic_data.is_public,
             is_editable=topic_data.is_editable,
+            allow_multi_select=topic_data.allow_multi_select,
             tags=topic_data.tags or []
         )
         

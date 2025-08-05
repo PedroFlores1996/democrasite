@@ -1249,6 +1249,66 @@ body {
     box-shadow: var(--glow-primary);
 }
 
+/* Voting option indicators */
+.option-radio,
+.option-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    margin-right: 12px;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.option-radio {
+    border-radius: 50%;
+}
+
+.option-checkbox {
+    border-radius: 4px;
+}
+
+/* Selected state indicators */
+.voting-option.selected .option-radio::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+}
+
+.voting-option.selected .option-checkbox::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.voting-option.selected .option-radio,
+.voting-option.selected .option-checkbox {
+    border-color: var(--primary);
+    background: rgba(14, 165, 233, 0.1);
+}
+
+/* Ensure voting option content is properly aligned */
+.voting-option {
+    display: flex;
+    align-items: center;
+}
+
+.option-text {
+    flex: 1;
+}
+
 /* Add Option Section */
 .add-option-section {
     margin-top: 20px;

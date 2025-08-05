@@ -82,6 +82,9 @@ def get_topic(
     # Get vote statistics
     vote_breakdown = vote_service.get_vote_breakdown(db, topic.id, topic.answers)
     total_votes = topic.vote_count or 0  # Use denormalized count
+    
+    # Get current user's votes for this topic
+    user_votes = vote_service.get_user_votes(db, topic.id, current_user.id)
 
     return TopicResponse(
         id=topic.id,
@@ -90,11 +93,13 @@ def get_topic(
         answers=topic.answers,
         is_public=topic.is_public,
         is_editable=topic.is_editable,
+        allow_multi_select=getattr(topic, 'allow_multi_select', False),  # Default to False for existing topics
         created_at=topic.created_at,
         total_votes=total_votes,
         vote_breakdown=vote_breakdown,
         tags=topic.tags or [],
         created_by=topic.creator.username,
+        user_votes=user_votes,
     )
 
 

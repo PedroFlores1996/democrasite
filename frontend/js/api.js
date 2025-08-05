@@ -163,8 +163,10 @@ class API {
         return this.post(`/api/topics/${shareCode}/leave`);
     }
 
-    async vote(shareCode, answer) {
-        return this.post(`/api/topics/${shareCode}/votes`, { choice: answer });
+    async vote(shareCode, choices) {
+        // Handle both single choice (string) and multiple choices (array)
+        const choicesArray = Array.isArray(choices) ? choices : [choices];
+        return this.post(`/api/topics/${shareCode}/votes`, { choices: choicesArray });
     }
 
     async getTopicUsers(shareCode) {

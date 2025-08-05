@@ -16,6 +16,7 @@ class TopicCreate(BaseModel):
     answers: List[str]
     is_public: bool = True
     is_editable: bool = False  # Allow others to add voting options
+    allow_multi_select: bool = False  # Allow users to vote for multiple options
     allowed_users: Optional[List[str]] = None  # List of usernames
     tags: Optional[List[str]] = []  # List of tags for categorization
     
@@ -40,17 +41,28 @@ class TopicResponse(BaseModel):
     answers: List[str]
     is_public: bool
     is_editable: bool
+    allow_multi_select: bool
     created_at: datetime
     total_votes: int
     vote_breakdown: Dict[str, int]
     tags: List[str] = []
     created_by: str
+    user_votes: List[str] = []  # Current user's votes/choices for this topic
     
     class Config:
         from_attributes = True
 
 class VoteSubmit(BaseModel):
-    choice: str
+    choices: List[str]  # Support multiple choices for multi-select topics
+    
+    @field_validator('choices')
+    @classmethod
+    def validate_choices(cls, v):
+        if not v or len(v) == 0:
+            raise ValueError('At least one choice must be selected')
+        if len(v) > 100:  # Reasonable limit
+            raise ValueError('Too many choices selected')
+        return v
 
 class OptionAdd(BaseModel):
     option: str
