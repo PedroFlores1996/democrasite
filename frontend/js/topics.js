@@ -146,16 +146,18 @@ class TopicsManager {
                     </div>
                     
                     <div class="topic-stats">
-                        <div class="stat-item">
+                        <div class="topic-stat">
                             <i class="fas fa-poll"></i>
                             <span>${topic.answer_count || 0}</span>
                         </div>
-                        <div class="stat-item">
+                        <div class="topic-stat">
                             <i class="fas fa-vote-yea"></i>
                             <span>${topic.total_votes || 0}</span>
                         </div>
-                        <div class="stat-item">
-                            <i class="fas fa-star"></i>
+                        <div class="topic-stat favorite-stat ${this.favorites.has(topic.share_code) ? 'is-favorited' : ''}" 
+                             onclick="event.stopPropagation(); topicsManager.toggleFavoriteFromCard('${topic.share_code}')" 
+                             title="${this.favorites.has(topic.share_code) ? 'Remove from favorites' : 'Add to favorites'}">
+                            <i class="fas fa-star ${this.favorites.has(topic.share_code) ? 'favorited' : 'not-favorited'}"></i>
                             <span>${topic.favorite_count || 0}</span>
                         </div>
                     </div>
@@ -518,6 +520,49 @@ class TopicsManager {
         } catch (error) {
             console.error('Error toggling favorite:', error);
             showToast(error.message || 'Error updating favorites', 'error');
+        }
+    }
+
+    async toggleFavoriteFromCard(shareCode) {
+        try {
+            authManager.requireAuth();
+
+            const isFavorited = this.favorites.has(shareCode);
+            
+            // Find the topic to update its favorite count optimistically
+            const topic = this.topics.find(t => t.share_code === shareCode);
+            
+            if (isFavorited) {
+                await api.removeFromFavorites(shareCode);
+                this.favorites.delete(shareCode);
+                
+                // Optimistically decrease the counter
+                if (topic && topic.favorite_count > 0) {
+                    topic.favorite_count -= 1;
+                }
+                
+                showToast('Removed from favorites', 'success');
+            } else {
+                await api.addToFavorites(shareCode);
+                this.favorites.add(shareCode);
+                
+                // Optimistically increase the counter
+                if (topic) {
+                    topic.favorite_count = (topic.favorite_count || 0) + 1;
+                }
+                
+                showToast('Added to favorites! ⭐', 'success');
+            }
+
+            // Re-render topics to update the visual state
+            this.renderTopics();
+
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+            showToast(error.message || 'Error updating favorites', 'error');
+            
+            // On error, revert the optimistic update by reloading topics
+            await this.loadTopics('', false);
         }
     }
 

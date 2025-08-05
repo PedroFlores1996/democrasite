@@ -1019,13 +1019,58 @@ body {
 .topic-stat {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
+    gap: 10px;
+    font-size: 18px;
     color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Favorite star styling */
+.favorite-stat {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    padding: 4px 6px;
+    position: relative;
+}
+
+.favorite-stat:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.favorite-stat i {
+    transition: all 0.3s ease;
+}
+
+/* Unfilled star (not favorited) */
+.favorite-stat i.not-favorited {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.favorite-stat:hover i.not-favorited {
+    color: #fbbf24;
+    opacity: 1;
+}
+
+/* Filled star (favorited) */
+.favorite-stat i.favorited {
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.favorite-stat.is-favorited {
+    color: #fbbf24;
+}
+
+.favorite-stat.is-favorited span {
+    color: #fbbf24;
+    font-weight: 500;
 }
 
 .topic-stat i {
-    font-size: 10px;
+    font-size: 18px;
     color: var(--primary);
 }
 
