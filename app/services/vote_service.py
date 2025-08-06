@@ -45,9 +45,10 @@ class VoteService:
     
     def get_total_votes(self, db: Session, topic_id: int) -> int:
         """
-        Get total number of votes for a topic
+        Get total number of votes for a topic (count distinct users who voted)
         """
-        return db.query(Vote).filter(Vote.topic_id == topic_id).count()
+        from sqlalchemy import func
+        return db.query(func.count(Vote.user_id.distinct())).filter(Vote.topic_id == topic_id).scalar()
     
     def get_user_votes(self, db: Session, topic_id: int, user_id: int) -> list[str]:
         """
@@ -151,14 +152,11 @@ class VoteService:
                 break
         
         # Update denormalized vote count
-        # For single-select: count is number of users who voted
-        # For multi-select: count is number of individual vote choices
-        if topic.allow_multi_select:
-            topic.vote_count = (topic.vote_count or 0) - votes_before + len(new_votes)
-        else:
-            # Single-select: if user had no vote before, increment by 1
-            if votes_before == 0:
-                topic.vote_count = (topic.vote_count or 0) + 1
+        # For both single-select and multi-select: count is number of users who voted
+        if votes_before == 0:
+            # User didn't vote before, increment by 1
+            topic.vote_count = (topic.vote_count or 0) + 1
+        # If user already voted (votes_before > 0), the count stays the same
         
         db.commit()
 

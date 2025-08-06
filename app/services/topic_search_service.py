@@ -4,6 +4,7 @@ from sqlalchemy import func, desc, asc, or_
 
 from app.db.models import Topic, User, TopicAccess
 from app.schemas import SortOption, TopicSummary, TopicsSearchResponse
+from app.services.vote_service import vote_service
 
 
 class TopicSearchService:
@@ -135,7 +136,7 @@ class TopicSearchService:
                     title=topic.title,
                     share_code=topic.share_code,
                     created_at=topic.created_at,
-                    total_votes=topic.vote_count or 0,  # Use denormalized count
+                    total_votes=vote_service.get_total_votes(db, topic.id),  # Use accurate count
                     answer_count=len(topic.answers) if topic.answers else 0,
                     favorite_count=topic.favorite_count or 0,  # Use denormalized count
                     tags=topic.tags or [],

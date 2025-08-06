@@ -238,6 +238,14 @@ class TopicsManager {
         const votingOptions = document.getElementById('votingOptions');
         const votingResults = document.getElementById('votingResults');
 
+        // Update the vote count in the header
+        const totalVotesElement = document.querySelector('.total-votes');
+        if (totalVotesElement && this.currentTopic) {
+            const voteCount = this.currentTopic.total_votes || 0;
+            const voteLabel = voteCount === 1 ? 'vote' : 'votes';
+            totalVotesElement.textContent = `${voteCount} ${voteLabel}`;
+        }
+
         if (!authManager.isAuthenticated) {
             votingOptions.innerHTML = `
                 <div class="text-center">
@@ -322,10 +330,14 @@ class TopicsManager {
         const isMultiSelect = this.currentTopic.allow_multi_select;
         const voteLabel = isMultiSelect ? 'selections' : 'votes';
         
+        // Calculate total selections (sum of all vote counts for multi-select)
+        const totalSelections = Object.values(voteCounts).reduce((sum, count) => sum + count, 0);
+        const totalForPercentage = isMultiSelect ? totalSelections : totalVotes;
+        
         const resultsHTML = Object.entries(voteCounts)
             .sort(([, a], [, b]) => b - a) // Sort by vote count descending
             .map(([answer, count], index) => {
-                const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                const percentage = totalForPercentage > 0 ? Math.round((count / totalForPercentage) * 100) : 0;
                 return `
                     <div class="result-item" style="animation: slideInLeft 0.5s ease-out ${index * 0.1}s both">
                         <div class="result-header">
@@ -340,7 +352,7 @@ class TopicsManager {
             }).join('');
 
         const resultTitle = isMultiSelect 
-            ? `Results (${totalVotes} total selections)`
+            ? `Results (${totalSelections} total selections)`
             : `Results (${totalVotes} total votes)`;
 
         votingResults.innerHTML = `

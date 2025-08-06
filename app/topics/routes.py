@@ -81,7 +81,7 @@ def get_topic(
     
     # Get vote statistics
     vote_breakdown = vote_service.get_vote_breakdown(db, topic.id, topic.answers)
-    total_votes = topic.vote_count or 0  # Use denormalized count
+    total_votes = vote_service.get_total_votes(db, topic.id)  # Use accurate count
     
     # Get current user's votes for this topic
     user_votes = vote_service.get_user_votes(db, topic.id, current_user.id)
