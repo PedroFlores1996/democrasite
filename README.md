@@ -15,26 +15,15 @@ A FastAPI-based democratic voting platform that allows users to create topics wi
 
 ## Quick Start
 
-### Installation
+### Running the Application
+
+#### Option 1: Docker (Recommended)
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd Democrasite
 
-# Set up virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Running the Application
-
-#### Option 1: Docker (Recommended)
-
-```bash
 # Build and start with docker-compose
 docker-compose up --build
 
@@ -48,6 +37,17 @@ docker-compose down
 #### Option 2: Local Development
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd Democrasite
+
+# Set up virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
 # Start the FastAPI server
 python3 main.py
 
