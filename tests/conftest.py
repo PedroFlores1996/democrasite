@@ -57,11 +57,13 @@ def db():
 @pytest.fixture
 def test_user(db):
     """Create a test user"""
+    from app.config.settings import settings
+    
     user = User(
         username="testuser",
         email="testuser@example.com",
         hashed_password=get_password_hash("testpass123"),
-        email_verified=True  # Skip email verification for tests
+        email_verified=True  # Always verified for tests to ensure they work
     )
     db.add(user)
     db.commit()
@@ -103,7 +105,7 @@ def create_verified_test_user(db, username: str, email: str, password: str = "te
         username=username,
         email=email,
         hashed_password=get_password_hash(password),
-        email_verified=True  # Skip email verification for tests
+        email_verified=True  # Always verified for tests to ensure they work
     )
     db.add(user)
     db.commit()

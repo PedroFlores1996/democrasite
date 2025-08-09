@@ -35,17 +35,25 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         else:
             raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Generate verification token
-    verification_token = generate_verification_token()
-    token_expires = get_token_expiration()
+    # Conditional email verification based on environment
+    if settings.REQUIRE_EMAIL_VERIFICATION:
+        # Production mode - require email verification
+        verification_token = generate_verification_token()
+        token_expires = get_token_expiration()
+        email_verified = False
+    else:
+        # Development mode - skip email verification
+        verification_token = None
+        token_expires = None
+        email_verified = True
     
-    # Create user (unverified)
+    # Create user
     hashed_password = get_password_hash(user.password)
     db_user = User(
         username=user.username.lower(),
         email=user.email,
         hashed_password=hashed_password,
-        email_verified=False,
+        email_verified=email_verified,
         verification_token=verification_token,
         verification_token_expires=token_expires
     )
@@ -53,26 +61,37 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     
-    # Send verification email
-    email_sent = email_service.send_verification_email(
-        to_email=user.email,
-        username=user.username,
-        verification_token=verification_token
-    )
-    
-    if not email_sent:
-        # If email fails, still allow registration but warn user
+    if settings.REQUIRE_EMAIL_VERIFICATION:
+        # Send verification email in production mode
+        email_sent = email_service.send_verification_email(
+            to_email=user.email,
+            username=user.username,
+            verification_token=verification_token
+        )
+        
+        if not email_sent:
+            # If email fails, still allow registration but warn user
+            return {
+                "message": "Registration successful! However, we couldn't send the verification email. Please contact support.",
+                "email_sent": False,
+                "username": user.username,
+                "requires_verification": True
+            }
+        
         return {
-            "message": "Registration successful! However, we couldn't send the verification email. Please contact support.",
-            "email_sent": False,
-            "username": user.username
+            "message": "Registration successful! Please check your email to verify your account before logging in.",
+            "email_sent": True,
+            "username": user.username,
+            "requires_verification": True
         }
-    
-    return {
-        "message": "Registration successful! Please check your email to verify your account before logging in.",
-        "email_sent": True,
-        "username": user.username
-    }
+    else:
+        # Development mode - user is immediately verified and can login
+        return {
+            "message": "Registration successful! You can now log in.",
+            "email_sent": False,
+            "username": user.username,
+            "requires_verification": False
+        }
 
 @router.post("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
@@ -138,8 +157,8 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Check if email is verified
-    if not db_user.email_verified:
+    # Check if email is verified (only in production mode)
+    if settings.REQUIRE_EMAIL_VERIFICATION and not db_user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Please verify your email address before logging in",
@@ -163,8 +182,8 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Check if email is verified
-    if not db_user.email_verified:
+    # Check if email is verified (only in production mode)
+    if settings.REQUIRE_EMAIL_VERIFICATION and not db_user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Please verify your email address before logging in",
