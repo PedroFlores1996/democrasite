@@ -22,6 +22,7 @@ from app.db.database import engine, Base
 from app.db.models import User, Topic, Vote, user_topic_favorites
 from app.auth.utils import get_password_hash
 from app.services.favorites_service import favorites_service
+from app.services.topic_service import topic_service
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -272,7 +273,7 @@ def create_topics(db, users, topics_data):
             allow_multi_select=topic_data.get("allow_multi_select", False),
             created_by=creator.id,
             created_at=datetime.utcnow() - timedelta(days=random.randint(1, 30), hours=random.randint(0, 23)),
-            share_code=f"topic_{i+1:03d}_{random.randint(1000, 9999)}"
+            share_code=topic_service.generate_share_code()  # Generate proper 8-char share code
         )
         
         db.add(topic)
