@@ -12,12 +12,12 @@ def test_delete_topic_success(client: TestClient, auth_headers):
         "tags": ["test"]
     }
     
-    response = client.post("/topics", json=topic_data, headers=auth_headers)
+    response = client.post("/api/topics", json=topic_data, headers=auth_headers)
     assert response.status_code == 200
     share_code = response.json()["share_code"]
     
     # Delete the topic
-    response = client.delete(f"/topics/{share_code}", headers=auth_headers)
+    response = client.delete(f"/api/topics/{share_code}", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()
@@ -37,17 +37,17 @@ def test_delete_topic_with_votes_and_access(client: TestClient, auth_headers):
         "tags": ["test"]
     }
     
-    response = client.post("/topics", json=topic_data, headers=auth_headers)
+    response = client.post("/api/topics", json=topic_data, headers=auth_headers)
     assert response.status_code == 200
     share_code = response.json()["share_code"]
     
     # Vote on the topic
-    vote_data = {"choice": "Option A"}
-    response = client.post(f"/topics/{share_code}/votes", json=vote_data, headers=auth_headers)
+    vote_data = {"choices": ["Option A"]}
+    response = client.post(f"/api/topics/{share_code}/votes", json=vote_data, headers=auth_headers)
     assert response.status_code == 200
     
     # Delete the topic
-    response = client.delete(f"/topics/{share_code}", headers=auth_headers)
+    response = client.delete(f"/api/topics/{share_code}", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()
@@ -65,19 +65,19 @@ def test_delete_topic_not_creator(client: TestClient, auth_headers):
         "is_public": True
     }
     
-    response = client.post("/topics", json=topic_data, headers=auth_headers)
+    response = client.post("/api/topics", json=topic_data, headers=auth_headers)
     assert response.status_code == 200
     share_code = response.json()["share_code"]
     
     # Register another user
     other_user_data = {"username": "otheruser", "password": "password123"}
-    response = client.post("/register", json=other_user_data)
+    response = client.post("/api/register", json=other_user_data)
     assert response.status_code == 200
     other_token = response.json()["access_token"]
     other_headers = {"Authorization": f"Bearer {other_token}"}
     
     # Try to delete as other user
-    response = client.delete(f"/topics/{share_code}", headers=other_headers)
+    response = client.delete(f"/api/topics/{share_code}", headers=other_headers)
     
     assert response.status_code == 403
     assert "Only topic creator can delete" in response.json()["detail"]
@@ -85,7 +85,7 @@ def test_delete_topic_not_creator(client: TestClient, auth_headers):
 
 def test_delete_nonexistent_topic(client: TestClient, auth_headers):
     """Test deleting a topic that doesn't exist"""
-    response = client.delete("/topics/INVALID123", headers=auth_headers)
+    response = client.delete("/api/topics/INVALID123", headers=auth_headers)
     
     assert response.status_code == 404
 
@@ -99,19 +99,19 @@ def test_topic_not_accessible_after_deletion(client: TestClient, auth_headers):
         "is_public": True
     }
     
-    response = client.post("/topics", json=topic_data, headers=auth_headers)
+    response = client.post("/api/topics", json=topic_data, headers=auth_headers)
     assert response.status_code == 200
     share_code = response.json()["share_code"]
     
     # Delete the topic
-    response = client.delete(f"/topics/{share_code}", headers=auth_headers)
+    response = client.delete(f"/api/topics/{share_code}", headers=auth_headers)
     assert response.status_code == 200
     
     # Try to access the deleted topic
-    response = client.get(f"/topics/{share_code}", headers=auth_headers)
+    response = client.get(f"/api/topics/{share_code}", headers=auth_headers)
     assert response.status_code == 404
     
     # Try to vote on the deleted topic
-    vote_data = {"choice": "Yes"}
-    response = client.post(f"/topics/{share_code}/votes", json=vote_data, headers=auth_headers)
+    vote_data = {"choices": ["Yes"]}
+    response = client.post(f"/api/topics/{share_code}/votes", json=vote_data, headers=auth_headers)
     assert response.status_code == 404
