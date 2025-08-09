@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Boolean, JSON, Table
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Boolean, JSON, Table, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.db.database import Base
@@ -16,8 +16,8 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    username = Column(String(50), unique=True, index=True)  # Specify length for better performance
+    hashed_password = Column(String(255))
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     votes = relationship("Vote", back_populates="user")
@@ -28,14 +28,15 @@ class Topic(Base):
     __tablename__ = "topics"
     
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)
+    title = Column(String(500), index=True)  # Specify reasonable length for title
+    description = Column(Text, nullable=True)  # Optional topic description (better for PostgreSQL)
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)  # Add index for sorting
     answers = Column(JSON)  # List of available answers
     is_public = Column(Boolean, default=True, index=True)  # Add index for filtering public topics
     is_editable = Column(Boolean, default=False)  # Allow others to add voting options
     allow_multi_select = Column(Boolean, default=False)  # Allow users to vote for multiple options
-    share_code = Column(String, unique=True, index=True)  # Random 8-character share code
+    share_code = Column(String(8), unique=True, index=True)  # Random 8-character share code
     tags = Column(JSON, default=list)  # List of tags for categorization and search
     vote_count = Column(Integer, default=0)  # Denormalized vote count for performance
     favorite_count = Column(Integer, default=0)  # Denormalized favorite count for business metrics
@@ -64,7 +65,7 @@ class Vote(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     topic_id = Column(Integer, ForeignKey("topics.id"))
-    choice = Column(String)  # Selected answer from topic's answers list
+    choice = Column(String(1000))  # Selected answer from topic's answers list
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # For multi-select topics, allow multiple votes per user per topic
