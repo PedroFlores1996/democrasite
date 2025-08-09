@@ -1,17 +1,17 @@
 
 services:
+  # Main application service - SQLite (Development)
   democrasite:
     build: .
     ports:
       - "8000:8000"
     volumes:
-      # Mount source code for development (comment out for production)
-      # - .:/app  # Commented out to avoid permission issues
-      # Persist SQLite database in a directory
       - democrasite_db:/app/data
     environment:
       - PYTHONPATH=/app
       - DATABASE_URL=sqlite:///./data/democrasite.db
+      - SECRET_KEY=${SECRET_KEY:-development-secret-key}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -20,29 +20,85 @@ services:
       retries: 3
       start_period: 40s
 
-  # Optional: Add a database service for production
-  # postgres:
-  #   image: postgres:15
-  #   environment:
-  #     POSTGRES_DB: democrasite
-  #     POSTGRES_USER: democrasite
-  #     POSTGRES_PASSWORD: democrasite
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
-
-  # Utility service to populate database with test data
-  populate-db:
-    build: .
+  # PostgreSQL database service (Production)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: democrasite_db
+      POSTGRES_USER: ${POSTGRES_USER:-democrasite_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-democrasite_pass}
     volumes:
-      - democrasite_db:/app/data
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-democrasite_user} -d democrasite_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - postgres
+    networks:
+      - democrasite-network
+
+  # Application with PostgreSQL (Production)
+  democrasite-postgres:
+    build: .
+    ports:
+      - "8001:8000"  # Use different external port to avoid conflict
     environment:
       - PYTHONPATH=/app
-      - DATABASE_URL=sqlite:///./data/democrasite.db
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-democrasite_user}:${POSTGRES_PASSWORD:-democrasite_pass}@postgres:5432/democrasite_db
+      - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - postgres
+    networks:
+      - democrasite-network
+
+  # Database population utility for SQLite
+  populate-db:
+    build: .
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/democrasite.db}
+    volumes:
+      # Only mount SQLite volume if using SQLite
+      - democrasite_db:/app/data
     command: python3 populate_db.py
     profiles:
-      - tools  # Only run when explicitly requested
+      - tools
+
+  # PostgreSQL database population utility  
+  populate-db-postgres:
+    build: .
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-democrasite_user}:${POSTGRES_PASSWORD:-democrasite_pass}@postgres:5432/democrasite_db
+    command: python3 populate_db.py
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - postgres
+    networks:
+      - democrasite-network
 
 volumes:
-  democrasite_db:
+  democrasite_db:   # SQLite data (development)
+  postgres_data:    # PostgreSQL data (production)
+
+networks:
+  democrasite-network:
+    driver: bridge
