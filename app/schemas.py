@@ -1,11 +1,28 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, EmailStr
 from typing import List, Optional, Dict
 from datetime import datetime
 from enum import Enum
 
 class UserCreate(BaseModel):
     username: str
+    email: EmailStr
     password: str
+    
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v):
+        if len(v) < 3 or len(v) > 50:
+            raise ValueError('Username must be between 3 and 50 characters')
+        if not v.replace('_', '').replace('-', '').isalnum():
+            raise ValueError('Username can only contain letters, numbers, hyphens, and underscores')
+        return v.lower().strip()
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        return v
 
 class UserLogin(BaseModel):
     username: str
