@@ -17,14 +17,14 @@ A FastAPI-based democratic voting platform that allows users to create topics wi
 
 ### Running the Application
 
-#### Option 1: Docker (Recommended)
+#### Option 1: Docker with SQLite (Development)
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd Democrasite
 
-# Build and start with docker-compose
+# Build and start with docker-compose (uses SQLite by default)
 docker-compose up --build
 
 # Or run in background
@@ -34,7 +34,20 @@ docker-compose up -d --build
 docker-compose down
 ```
 
-#### Option 2: Local Development
+#### Option 2: Docker with PostgreSQL (Production-like)
+
+```bash
+# Start PostgreSQL and the application (will be available on port 8001)
+docker-compose --profile postgres up --build
+
+# Populate with test data (optional)
+docker-compose --profile postgres run --rm populate-db-postgres
+
+# Stop everything
+docker-compose --profile postgres down
+```
+
+#### Option 3: Local Development Only
 
 ```bash
 # Clone the repository
@@ -55,9 +68,18 @@ python3 main.py
 python3 cli.py
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at:
+- **SQLite (Development)**: `http://localhost:8000`
+- **PostgreSQL (Production)**: `http://localhost:8001`
 
-> **Note**: The CLI connects to the server, so make sure the server is running first.
+> **Note**: Both environments can run simultaneously since they use different ports. The CLI connects to port 8000 by default, so make sure the SQLite server is running for CLI usage.
+
+### Docker Compose Profiles
+
+We use a single `docker-compose.yml` with profiles for different environments:
+- **Default (no profile)**: SQLite development setup
+- **`--profile postgres`**: PostgreSQL production setup
+- **`--profile tools`**: Database population utilities
 
 ### Test Data Population
 
@@ -69,16 +91,22 @@ To test the application with realistic data, you can populate the database with 
 python3 populate_db.py
 ```
 
-#### Docker Container
+#### Docker Container (SQLite)
 ```bash
-# Option 1: Using the dedicated populate-db service (easiest)
+# Using the dedicated populate-db service
 docker-compose --profile tools run --rm populate-db
 
-# Option 2: Execute in running container
+# Or execute in running container
 docker-compose exec democrasite python3 populate_db.py
+```
 
-# Option 3: Run in standalone container
-docker run --rm -v democrasite_db:/app/data democrasite python3 populate_db.py
+#### Docker Container (PostgreSQL)
+```bash
+# Using the dedicated populate-db service for PostgreSQL
+docker-compose --profile postgres run --rm populate-db-postgres
+
+# Or execute in running PostgreSQL container
+docker-compose --profile postgres exec democrasite-postgres python3 populate_db.py
 ```
 
 This will create:
@@ -127,14 +155,21 @@ Sample usernames:
 # Build the image
 docker build -t democrasite .
 
-# Run container
-docker run -p 8000:8000 -v $(pwd)/democrasite.db:/app/democrasite.db democrasite
+# View logs (SQLite)
+docker-compose logs -f democrasite
 
-# View logs
-docker-compose logs -f
+# View logs (PostgreSQL) 
+docker-compose --profile postgres logs -f democrasite-postgres
 
-# Access container shell
+# Access container shell (SQLite)
 docker-compose exec democrasite bash
+
+# Access container shell (PostgreSQL)
+docker-compose --profile postgres exec democrasite-postgres bash
+
+# Clean up everything
+docker-compose down --volumes
+docker-compose --profile postgres down --volumes
 ```
 
 ### API Documentation
@@ -255,17 +290,20 @@ python3 -m pytest tests/test_topics.py::test_create_topic_success -v
 - Data integrity and cascade operations
 
 ### Database
-- Uses SQLite (`democrasite.db`)
+- **Development**: SQLite (`democrasite.db`) - file-based, simple setup
+- **Production**: PostgreSQL - robust, scalable, production-ready
 - Tables auto-created on startup
-- Reset: `rm democrasite.db`
+- Reset SQLite: `rm democrasite.db`
+- Reset PostgreSQL: `docker-compose --profile postgres down --volumes`
 
 ## Architecture
 
 - **FastAPI** - Web framework
-- **SQLAlchemy** - ORM with SQLite
-- **JWT** - Authentication
-- **Pydantic** - Data validation
+- **SQLAlchemy** - ORM with multi-database support (SQLite + PostgreSQL)
+- **JWT** - Authentication with bcrypt password hashing
+- **Pydantic** - Data validation and serialization
 - **pytest** - Testing framework
+- **Docker** - Containerization with profile-based environments
 
 ## License
 
