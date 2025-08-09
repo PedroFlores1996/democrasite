@@ -12,6 +12,7 @@ services:
       - DATABASE_URL=sqlite:///./data/democrasite.db
       - SECRET_KEY=${SECRET_KEY:-development-secret-key}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - REQUIRE_EMAIL_VERIFICATION=false  # Development mode - no email verification
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -52,6 +53,15 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-democrasite_user}:${POSTGRES_PASSWORD:-democrasite_pass}@postgres:5432/democrasite_db
       - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - REQUIRE_EMAIL_VERIFICATION=true   # Production mode - email verification required
+      # SMTP Configuration for email verification (set these in production)
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@democrasite.com}
+      - FROM_NAME=${FROM_NAME:-Democrasite}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8001}
     depends_on:
       postgres:
         condition: service_healthy
