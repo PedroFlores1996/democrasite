@@ -56,7 +56,7 @@ def test_delete_topic_with_votes_and_access(client: TestClient, auth_headers):
     assert data["access_records_deleted"] == 1  # Creator is automatically added to allowed users
 
 
-def test_delete_topic_not_creator(client: TestClient, auth_headers):
+def test_delete_topic_not_creator(client: TestClient, auth_headers, db):
     """Test that non-creator cannot delete topic"""
     # Create a topic
     topic_data = {
@@ -69,11 +69,12 @@ def test_delete_topic_not_creator(client: TestClient, auth_headers):
     assert response.status_code == 200
     share_code = response.json()["share_code"]
     
-    # Register another user
-    other_user_data = {"username": "otheruser", "password": "password123"}
-    response = client.post("/api/register", json=other_user_data)
-    assert response.status_code == 200
-    other_token = response.json()["access_token"]
+    # Create another verified user directly in database for testing
+    from tests.conftest import create_verified_test_user
+    from app.auth.utils import create_access_token
+    
+    other_user = create_verified_test_user(db, "otheruser", "otheruser@example.com")
+    other_token = create_access_token(data={"sub": other_user.username})
     other_headers = {"Authorization": f"Bearer {other_token}"}
     
     # Try to delete as other user

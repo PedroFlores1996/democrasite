@@ -59,7 +59,9 @@ def test_user(db):
     """Create a test user"""
     user = User(
         username="testuser",
-        hashed_password=get_password_hash("testpass123")
+        email="testuser@example.com",
+        hashed_password=get_password_hash("testpass123"),
+        email_verified=True  # Skip email verification for tests
     )
     db.add(user)
     db.commit()
@@ -93,3 +95,17 @@ def private_topic_data():
         "is_public": False,
         "allowed_users": ["testuser"]
     }
+
+
+def create_verified_test_user(db, username: str, email: str, password: str = "testpass123"):
+    """Helper function to create a verified user for testing"""
+    user = User(
+        username=username,
+        email=email,
+        hashed_password=get_password_hash(password),
+        email_verified=True  # Skip email verification for tests
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
