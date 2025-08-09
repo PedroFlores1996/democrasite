@@ -36,6 +36,9 @@ class Settings:
     
     # Email verification
     VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    
+    # Email verification toggle - set to False for development/demo environments
+    REQUIRE_EMAIL_VERIFICATION: bool = os.getenv("REQUIRE_EMAIL_VERIFICATION", "true").lower() == "true"
 
 
 settings = Settings()
