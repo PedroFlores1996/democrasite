@@ -17,14 +17,14 @@ A FastAPI-based democratic voting platform that allows users to create topics wi
 
 ### Running the Application
 
-#### Option 1: Docker with SQLite (Development)
+#### Option 1: Docker with SQLite (Development - No Email Verification)
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd Democrasite
 
-# Build and start with docker-compose (uses SQLite by default)
+# Build and start with docker-compose (uses SQLite, no email verification)
 docker-compose up --build
 
 # Or run in background
@@ -34,7 +34,12 @@ docker-compose up -d --build
 docker-compose down
 ```
 
-#### Option 2: Docker with PostgreSQL (Production-like)
+**Features:**
+- 🗃️ SQLite database (easy setup, no external dependencies)
+- 🚀 No email verification required (instant registration & login)
+- 🔧 Perfect for development, demos, and testing
+
+#### Option 2: Docker with PostgreSQL (Production - Email Verification Required)
 
 ```bash
 # Start PostgreSQL and the application (will be available on port 8001)
@@ -46,6 +51,12 @@ docker-compose --profile postgres run --rm populate-db-postgres
 # Stop everything
 docker-compose --profile postgres down
 ```
+
+**Features:**
+- 🛡️ PostgreSQL database (production-ready, scalable)
+- 📧 Email verification required (prevents spam registrations)  
+- 🔒 Production-ready security configuration
+- ⚙️ SMTP configuration needed (set environment variables)
 
 #### Option 3: Local Development Only
 

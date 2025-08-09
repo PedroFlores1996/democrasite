@@ -11,6 +11,8 @@ Democrasite is a FastAPI-based voting platform that allows users to create topic
 ### Server Management
 - **Start development server**: `python3 main.py`
 - **Start with virtual environment**: `source venv/bin/activate && python main.py`
+- **Docker development (SQLite, no email verification)**: `docker-compose up`
+- **Docker production (PostgreSQL, email verification)**: `docker-compose --profile postgres up`
 
 ### Testing
 - **Run all tests**: `python -m pytest tests/ -v`
@@ -47,7 +49,8 @@ Democrasite is a FastAPI-based voting platform that allows users to create topic
 **Authentication** (`app/auth/`)
 - JWT-based auth with bcrypt password hashing
 - Bearer token authentication required for all topic operations
-- Registration automatically logs users in
+- Email verification system with conditional enforcement (configurable for dev/prod environments)
+- Professional email templates using Python's built-in smtplib
 
 ### Data Flow
 
@@ -75,3 +78,7 @@ Democrasite is a FastAPI-based voting platform that allows users to create topic
 - **Settings**: Environment-based config in `app/config/settings.py`
 - **Database**: SQLite with configurable URL (defaults to `democrasite.db`)
 - **Security**: JWT secret configurable via `SECRET_KEY` environment variable
+- **Email Verification**: Automatically configured based on Docker profile
+  - **Default Docker profile** (SQLite): `REQUIRE_EMAIL_VERIFICATION=false` - Development mode, no email verification
+  - **PostgreSQL Docker profile**: `REQUIRE_EMAIL_VERIFICATION=true` - Production mode, email verification required
+  - **Manual override**: Set `REQUIRE_EMAIL_VERIFICATION` environment variable to override defaults
