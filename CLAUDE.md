@@ -29,6 +29,13 @@ Democrasite is a FastAPI-based voting platform that allows users to create topic
 - **Reset database**: `rm democrasite.db` (tables auto-created on startup)
 - **View schema**: Check `app/db/models.py` for current structure
 
+### Git Commit Rules
+When creating git commits, follow these strict rules:
+- **NO Claude references**: Never include "Claude Code", "claude.ai", or similar references
+- **NO co-author attribution**: Never include "Co-Authored-By: Claude" or similar
+- **Clean commit messages**: Use standard git commit format with descriptive summary and bullet points
+- **Focus on the change**: Describe what was implemented and why, not who implemented it
+
 ## Architecture
 
 ### Core Components
