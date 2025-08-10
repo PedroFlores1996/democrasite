@@ -28,10 +28,10 @@ cd Democrasite
 docker-compose up --build
 
 # Or run in background
-docker-compose up -d --build
+docker-compose -f docker/docker-compose.yml up -d --build
 
 # Stop the application
-docker-compose down
+docker-compose -f docker/docker-compose.yml down
 ```
 
 **Features:**
@@ -43,13 +43,13 @@ docker-compose down
 
 ```bash
 # Start PostgreSQL and the application (will be available on port 8001)
-docker-compose --profile postgres up --build
+docker-compose -f docker/docker-compose.yml --profile postgres up --build
 
 # Populate with test data (optional)
-docker-compose --profile postgres run --rm populate-db-postgres
+docker-compose -f docker/docker-compose.yml --profile postgres run --rm populate-db-postgres
 
 # Stop everything
-docker-compose --profile postgres down
+docker-compose -f docker/docker-compose.yml --profile postgres down
 ```
 
 **Features:**
@@ -68,7 +68,7 @@ cp .env.example .env
 # SMTP_PASSWORD=your-app-password
 
 # Then run with environment file
-docker-compose --profile postgres --env-file .env up
+docker-compose -f docker/docker-compose.yml --profile postgres --env-file .env up
 ```
 
 #### Option 3: Local Development Only
@@ -127,10 +127,10 @@ docker-compose exec democrasite python3 populate_db.py
 #### Docker Container (PostgreSQL)
 ```bash
 # Using the dedicated populate-db service for PostgreSQL
-docker-compose --profile postgres run --rm populate-db-postgres
+docker-compose -f docker/docker-compose.yml --profile postgres run --rm populate-db-postgres
 
 # Or execute in running PostgreSQL container
-docker-compose --profile postgres exec democrasite-postgres python3 populate_db.py
+docker-compose -f docker/docker-compose.yml --profile postgres exec democrasite-postgres python3 populate_db.py
 ```
 
 This will create:
@@ -183,17 +183,17 @@ docker build -t democrasite .
 docker-compose logs -f democrasite
 
 # View logs (PostgreSQL) 
-docker-compose --profile postgres logs -f democrasite-postgres
+docker-compose -f docker/docker-compose.yml --profile postgres logs -f democrasite-postgres
 
 # Access container shell (SQLite)
 docker-compose exec democrasite bash
 
 # Access container shell (PostgreSQL)
-docker-compose --profile postgres exec democrasite-postgres bash
+docker-compose -f docker/docker-compose.yml --profile postgres exec democrasite-postgres bash
 
 # Clean up everything
-docker-compose down --volumes
-docker-compose --profile postgres down --volumes
+docker-compose -f docker/docker-compose.yml down --volumes
+docker-compose -f docker/docker-compose.yml --profile postgres down --volumes
 ```
 
 ### API Documentation
@@ -318,7 +318,7 @@ python3 -m pytest tests/test_topics.py::test_create_topic_success -v
 - **Production**: PostgreSQL - robust, scalable, production-ready
 - Tables auto-created on startup
 - Reset SQLite: `rm democrasite.db`
-- Reset PostgreSQL: `docker-compose --profile postgres down --volumes`
+- Reset PostgreSQL: `docker-compose -f docker/docker-compose.yml --profile postgres down --volumes`
 
 ## Architecture
 
