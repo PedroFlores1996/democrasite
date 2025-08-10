@@ -57,8 +57,8 @@ services:
       # SMTP Configuration for email verification (set these in production)
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
       - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USERNAME=${SMTP_USERNAME}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - FROM_EMAIL=${FROM_EMAIL:-noreply@democrasite.com}
       - FROM_NAME=${FROM_NAME:-Democrasite}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8001}

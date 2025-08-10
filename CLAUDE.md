@@ -11,6 +11,7 @@ Democrasite is a FastAPI-based voting platform that allows users to create topic
 ### Server Management
 - **Start development server**: `python3 main.py`
 - **Start with virtual environment**: `source venv/bin/activate && python main.py`
+- **VS Code debug (F5)**: Configured for development mode with SQLite and no email verification
 - **Docker development (SQLite, no email verification)**: `docker-compose up`
 - **Docker production (PostgreSQL, email verification)**: `docker-compose --profile postgres up`
 
@@ -72,6 +73,14 @@ Democrasite is a FastAPI-based voting platform that allows users to create topic
 - **Test Isolation**: Each test gets fresh database via fixtures
 - **Authentication Testing**: Covers both authenticated and unauthenticated scenarios
 - **VS Code Integration**: Tests discoverable in Test Explorer with debugging support
+
+### VS Code Configuration
+
+- **Debug Configurations**: Three launch configurations available
+  - **FastAPI Debug (Development Mode)**: Basic debugging with development settings
+  - **FastAPI with Uvicorn (Development Mode)**: Hot-reload development server (default F5)
+  - **FastAPI with Uvicorn (Production Mode)**: Production settings with email verification
+- **Default F5 Behavior**: Starts development server with SQLite and no email verification
 
 ### Configuration
 

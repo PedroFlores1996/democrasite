@@ -1,6 +1,6 @@
 // API Configuration and utilities
 class API {
-    constructor(baseURL = 'http://localhost:8000') {
+    constructor(baseURL = window.location.origin) {
         this.baseURL = baseURL;
         this.token = localStorage.getItem('authToken');
     }
@@ -84,8 +84,8 @@ class API {
     }
 
     // Authentication endpoints
-    async register(username, password) {
-        const response = await this.post('/api/register', { username, password });
+    async register(username, email, password) {
+        const response = await this.post('/api/register', { username, email, password });
         if (response.access_token) {
             this.setToken(response.access_token);
         }
@@ -206,5 +206,5 @@ class API {
 
 }
 
-// Global API instance
-window.api = new API();
+// Global API instance - force current origin to handle different ports
+window.api = new API(window.location.origin);

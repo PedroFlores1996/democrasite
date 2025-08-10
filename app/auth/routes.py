@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 
 from app.schemas import UserCreate, UserLogin, Token, UserStats
 from app.auth.utils import (
@@ -12,7 +12,7 @@ from app.auth.utils import (
 )
 from app.config.settings import settings
 from app.db.database import get_db
-from app.db.models import User, Topic, Vote
+from app.db.models import User, Topic, Vote, PendingRegistration
 from app.services.email_service import (
     email_service, 
     generate_verification_token, 
@@ -24,7 +24,7 @@ router = APIRouter()
 
 @router.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if username or email already exists
+    # Check if username or email already exists in active users
     existing_user = db.query(User).filter(
         (User.username == user.username.lower()) | (User.email == user.email)
     ).first()
@@ -37,32 +37,34 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     
     # Conditional email verification based on environment
     if settings.REQUIRE_EMAIL_VERIFICATION:
-        # Production mode - require email verification
+        # Production mode - use staged registration with pending verification
+        
+        # Clean up expired pending registrations periodically
+        cleanup_expired_pending_registrations(db)
+        
+        # Clean up any existing pending registrations for this email/username
+        db.query(PendingRegistration).filter(
+            (PendingRegistration.username == user.username.lower()) | 
+            (PendingRegistration.email == user.email)
+        ).delete(synchronize_session=False)
+        
         verification_token = generate_verification_token()
         token_expires = get_token_expiration()
-        email_verified = False
-    else:
-        # Development mode - skip email verification
-        verification_token = None
-        token_expires = None
-        email_verified = True
-    
-    # Create user
-    hashed_password = get_password_hash(user.password)
-    db_user = User(
-        username=user.username.lower(),
-        email=user.email,
-        hashed_password=hashed_password,
-        email_verified=email_verified,
-        verification_token=verification_token,
-        verification_token_expires=token_expires
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    if settings.REQUIRE_EMAIL_VERIFICATION:
-        # Send verification email in production mode
+        hashed_password = get_password_hash(user.password)
+        
+        # Create pending registration (not actual user yet)
+        pending_registration = PendingRegistration(
+            username=user.username.lower(),
+            email=user.email,
+            hashed_password=hashed_password,
+            verification_token=verification_token,
+            verification_token_expires=token_expires
+        )
+        db.add(pending_registration)
+        db.commit()
+        db.refresh(pending_registration)
+        
+        # Send verification email
         email_sent = email_service.send_verification_email(
             to_email=user.email,
             username=user.username,
@@ -70,13 +72,13 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         )
         
         if not email_sent:
-            # If email fails, still allow registration but warn user
-            return {
-                "message": "Registration successful! However, we couldn't send the verification email. Please contact support.",
-                "email_sent": False,
-                "username": user.username,
-                "requires_verification": True
-            }
+            # If email fails, clean up the pending registration
+            db.delete(pending_registration)
+            db.commit()
+            raise HTTPException(
+                status_code=500, 
+                detail="Failed to send verification email. Please try again."
+            )
         
         return {
             "message": "Registration successful! Please check your email to verify your account before logging in.",
@@ -85,7 +87,20 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
             "requires_verification": True
         }
     else:
-        # Development mode - user is immediately verified and can login
+        # Development mode - create user immediately (old behavior)
+        hashed_password = get_password_hash(user.password)
+        db_user = User(
+            username=user.username.lower(),
+            email=user.email,
+            hashed_password=hashed_password,
+            email_verified=True,
+            verification_token=None,
+            verification_token_expires=None
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
         return {
             "message": "Registration successful! You can now log in.",
             "email_sent": False,
@@ -96,6 +111,50 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 @router.post("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
     """Verify user's email address using the verification token"""
+    if settings.REQUIRE_EMAIL_VERIFICATION:
+        # Production mode - look for pending registration first
+        pending_registration = db.query(PendingRegistration).filter(
+            PendingRegistration.verification_token == token
+        ).first()
+        
+        if pending_registration:
+            # Found pending registration - verify and create actual user
+            if is_token_expired(pending_registration.verification_token_expires):
+                # Clean up expired pending registration
+                db.delete(pending_registration)
+                db.commit()
+                raise HTTPException(status_code=400, detail="Verification token has expired")
+            
+            # Check if user was created in the meantime (race condition protection)
+            existing_user = db.query(User).filter(
+                (User.username == pending_registration.username) | (User.email == pending_registration.email)
+            ).first()
+            
+            if existing_user:
+                # Clean up pending registration since user already exists
+                db.delete(pending_registration)
+                db.commit()
+                raise HTTPException(status_code=400, detail="User already registered")
+            
+            # Create actual user from pending registration
+            db_user = User(
+                username=pending_registration.username,
+                email=pending_registration.email,
+                hashed_password=pending_registration.hashed_password,
+                email_verified=True,
+                verification_token=None,
+                verification_token_expires=None
+            )
+            db.add(db_user)
+            
+            # Clean up the pending registration
+            db.delete(pending_registration)
+            db.commit()
+            db.refresh(db_user)
+            
+            return {"message": "Email verified successfully! You can now log in."}
+    
+    # Fall back to old verification system (for development mode or legacy users)
     user = db.query(User).filter(User.verification_token == token).first()
     
     if not user:
@@ -118,6 +177,34 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 @router.post("/resend-verification")
 def resend_verification_email(email: str, db: Session = Depends(get_db)):
     """Resend verification email to user"""
+    if settings.REQUIRE_EMAIL_VERIFICATION:
+        # Production mode - check pending registrations first
+        pending_registration = db.query(PendingRegistration).filter(
+            PendingRegistration.email == email
+        ).first()
+        
+        if pending_registration:
+            # Generate new verification token for pending registration
+            verification_token = generate_verification_token()
+            token_expires = get_token_expiration()
+            
+            pending_registration.verification_token = verification_token
+            pending_registration.verification_token_expires = token_expires
+            db.commit()
+            
+            # Send verification email
+            email_sent = email_service.send_verification_email(
+                to_email=pending_registration.email,
+                username=pending_registration.username,
+                verification_token=verification_token
+            )
+            
+            if not email_sent:
+                raise HTTPException(status_code=500, detail="Failed to send verification email")
+            
+            return {"message": "Verification email sent"}
+    
+    # Fall back to old system for existing users or development mode
     user = db.query(User).filter(User.email == email).first()
     
     if not user:
@@ -266,4 +353,28 @@ def delete_account(
         "message": "Account deleted successfully",
         "topics_deleted": topics_deleted,
         "votes_deleted": votes_deleted
+    }
+
+def cleanup_expired_pending_registrations(db: Session) -> int:
+    """Clean up expired pending registrations. Returns number of records cleaned up."""
+    current_time = datetime.now(timezone.utc)
+    
+    # Delete all expired pending registrations
+    expired_registrations = db.query(PendingRegistration).filter(
+        PendingRegistration.verification_token_expires < current_time
+    )
+    
+    count = expired_registrations.count()
+    expired_registrations.delete(synchronize_session=False)
+    db.commit()
+    
+    return count
+
+@router.post("/cleanup-expired-registrations")
+def cleanup_expired_registrations_endpoint(db: Session = Depends(get_db)):
+    """Manual cleanup endpoint for expired pending registrations (admin use)"""
+    count = cleanup_expired_pending_registrations(db)
+    return {
+        "message": f"Cleaned up {count} expired pending registrations",
+        "cleaned_up": count
     }

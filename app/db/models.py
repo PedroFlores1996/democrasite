@@ -63,6 +63,20 @@ class TopicAccess(Base):
     topic = relationship("Topic", back_populates="allowed_users")
     user = relationship("User")
 
+class PendingRegistration(Base):
+    __tablename__ = "pending_registrations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), index=True)  # Not unique since we may have failed attempts
+    email = Column(String(255), index=True)    # Not unique since we may have failed attempts
+    hashed_password = Column(String(255))
+    verification_token = Column(String(255), unique=True, index=True)  # Unique token for verification
+    verification_token_expires = Column(DateTime)  # Token expiration
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    
+    # Clean up expired registrations automatically
+    __table_args__ = ()
+
 class Vote(Base):
     __tablename__ = "votes"
     

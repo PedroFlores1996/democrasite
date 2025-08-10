@@ -24,7 +24,7 @@ class AuthManager {
         }
     }
 
-    async register(username, password, confirmPassword) {
+    async register(username, email, password, confirmPassword) {
         if (password !== confirmPassword) {
             throw new Error('Passwords do not match');
         }
@@ -34,12 +34,20 @@ class AuthManager {
         }
 
         try {
-            const response = await api.register(username, password);
-            // Get user info after successful registration
-            const userData = await api.getCurrentUser();
-            this.currentUser = userData;
-            this.isAuthenticated = true;
-            this.updateUI();
+            const response = await api.register(username, email, password);
+            
+            // Handle different registration responses based on email verification requirements
+            if (response.requires_verification) {
+                // Production mode - email verification required
+                throw new Error('Registration successful! Please check your email to verify your account before logging in.');
+            } else {
+                // Development mode - user can login immediately
+                const userData = await api.getCurrentUser();
+                this.currentUser = userData;
+                this.isAuthenticated = true;
+                this.updateUI();
+            }
+            
             return response;
         } catch (error) {
             throw error;
@@ -290,10 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
 
             const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
 
-            await authManager.register(username, password, confirmPassword);
+            await authManager.register(username, email, password, confirmPassword);
             hideModal('authModal');
             showToast('Welcome to Democrasite! 🚀', 'success');
             registerForm.reset();

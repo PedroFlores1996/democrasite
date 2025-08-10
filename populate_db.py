@@ -33,21 +33,21 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 def generate_test_users():
     """Generate realistic test users"""
     users_data = [
-        {"username": "alice_cooper", "password": "password123"},
-        {"username": "bob_builder", "password": "password123"},
-        {"username": "charlie_dev", "password": "password123"},
-        {"username": "diana_explorer", "password": "password123"},
-        {"username": "ethan_gamer", "password": "password123"},
-        {"username": "fiona_artist", "password": "password123"},
-        {"username": "george_chef", "password": "password123"},
-        {"username": "hannah_writer", "password": "password123"},
-        {"username": "ivan_traveler", "password": "password123"},
-        {"username": "julia_scientist", "password": "password123"},
-        {"username": "kevin_musician", "password": "password123"},
-        {"username": "luna_photographer", "password": "password123"},
-        {"username": "marco_athlete", "password": "password123"},
-        {"username": "nina_teacher", "password": "password123"},
-        {"username": "oscar_entrepreneur", "password": "password123"},
+        {"username": "alice_cooper", "email": "alice.cooper@example.com", "password": "password123"},
+        {"username": "bob_builder", "email": "bob.builder@example.com", "password": "password123"},
+        {"username": "charlie_dev", "email": "charlie.dev@example.com", "password": "password123"},
+        {"username": "diana_explorer", "email": "diana.explorer@example.com", "password": "password123"},
+        {"username": "ethan_gamer", "email": "ethan.gamer@example.com", "password": "password123"},
+        {"username": "fiona_artist", "email": "fiona.artist@example.com", "password": "password123"},
+        {"username": "george_chef", "email": "george.chef@example.com", "password": "password123"},
+        {"username": "hannah_writer", "email": "hannah.writer@example.com", "password": "password123"},
+        {"username": "ivan_traveler", "email": "ivan.traveler@example.com", "password": "password123"},
+        {"username": "julia_scientist", "email": "julia.scientist@example.com", "password": "password123"},
+        {"username": "kevin_musician", "email": "kevin.musician@example.com", "password": "password123"},
+        {"username": "luna_photographer", "email": "luna.photographer@example.com", "password": "password123"},
+        {"username": "marco_athlete", "email": "marco.athlete@example.com", "password": "password123"},
+        {"username": "nina_teacher", "email": "nina.teacher@example.com", "password": "password123"},
+        {"username": "oscar_entrepreneur", "email": "oscar.entrepreneur@example.com", "password": "password123"},
     ]
     return users_data
 
@@ -240,7 +240,9 @@ def create_users(db, users_data):
             
         user = User(
             username=user_data["username"],
+            email=user_data["email"],
             hashed_password=get_password_hash(user_data["password"]),
+            email_verified=True,  # Demo users are pre-verified for easy login
             created_at=datetime.utcnow() - timedelta(days=random.randint(1, 90))
         )
         db.add(user)
