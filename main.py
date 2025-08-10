@@ -10,20 +10,21 @@ from app.topics.routes import router as topics_router
 from app.favorites.routes import router as favorites_router
 
 app = FastAPI(
-    title=settings.API_TITLE, 
+    title=settings.API_TITLE,
     version=settings.API_VERSION,
     swagger_ui_parameters={
         "persistAuthorization": True  # Keep auth token across page refreshes
-    }
+    },
 )
 
-# Add CORS middleware
+# CORS Configuration - Minimal setup since frontend served from same origin
+# CORS is technically not needed, but kept minimal for API testing tools if needed
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
+    allow_origins=[],  # Empty - most secure, only same-origin requests allowed
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 # Include API routers with prefix
@@ -34,10 +35,12 @@ app.include_router(favorites_router, prefix="/api")
 # Serve static files (frontend)
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
+
 # Serve the frontend at root
 @app.get("/")
 async def serve_frontend():
     return FileResponse("frontend/index.html")
+
 
 # Handle client-side routing (SPA) - this should be last
 @app.get("/{path:path}")
@@ -48,8 +51,10 @@ async def serve_spa(path: str):
     # For other paths, let FastAPI handle normally
     raise HTTPException(status_code=404, detail="Not found")
 
+
 create_tables()
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
