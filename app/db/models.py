@@ -19,9 +19,6 @@ class User(Base):
     username = Column(String(50), unique=True, index=True)  # Specify length for better performance
     email = Column(String(255), unique=True, index=True)  # Email field for verification
     hashed_password = Column(String(255))
-    email_verified = Column(Boolean, default=False)  # Whether email is verified
-    verification_token = Column(String(255), nullable=True)  # Token for email verification
-    verification_token_expires = Column(DateTime, nullable=True)  # Token expiration
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     votes = relationship("Vote", back_populates="user")

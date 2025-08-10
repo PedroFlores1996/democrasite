@@ -242,7 +242,6 @@ def create_users(db, users_data):
             username=user_data["username"],
             email=user_data["email"],
             hashed_password=get_password_hash(user_data["password"]),
-            email_verified=True,  # Demo users are pre-verified for easy login
             created_at=datetime.utcnow() - timedelta(days=random.randint(1, 90))
         )
         db.add(user)
