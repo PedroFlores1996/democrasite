@@ -10,7 +10,6 @@ A FastAPI-based democratic voting platform that allows users to create topics wi
 - **Share Codes**: Secure 8-character codes instead of exposed database IDs
 - **JWT Authentication**: Secure user registration and login
 - **RESTful API**: Clean REST endpoints for all operations
-- **Interactive CLI**: Command-line interface for easy testing and interaction
 - **Comprehensive Testing**: Full test suite with VS Code integration
 
 ## Quick Start
@@ -28,10 +27,10 @@ cd Democrasite
 docker-compose up --build
 
 # Or run in background
-docker-compose -f docker/docker-compose.yml up -d --build
+docker-compose up -d --build
 
 # Stop the application
-docker-compose -f docker/docker-compose.yml down
+docker-compose down
 ```
 
 **Features:**
@@ -43,13 +42,13 @@ docker-compose -f docker/docker-compose.yml down
 
 ```bash
 # Start PostgreSQL and the application (will be available on port 8001)
-docker-compose -f docker/docker-compose.yml --profile postgres up --build
+docker-compose --profile postgres up --build
 
 # Populate with test data (optional)
-docker-compose -f docker/docker-compose.yml --profile postgres run --rm populate-db-postgres
+docker-compose --profile postgres run --rm populate-db-postgres
 
 # Stop everything
-docker-compose -f docker/docker-compose.yml --profile postgres down
+docker-compose --profile postgres down
 ```
 
 **Features:**
@@ -68,7 +67,7 @@ cp .env.example .env
 # SMTP_PASSWORD=your-app-password
 
 # Then run with environment file
-docker-compose -f docker/docker-compose.yml --profile postgres --env-file .env up
+docker-compose --profile postgres --env-file .env up
 ```
 
 #### Option 3: Local Development Only
@@ -87,16 +86,13 @@ pip install -r requirements.txt
 
 # Start the FastAPI server
 python3 main.py
-
-# In a separate terminal, use the interactive CLI
-python3 cli.py
 ```
 
 The API will be available at:
 - **SQLite (Development)**: `http://localhost:8000`
 - **PostgreSQL (Production)**: `http://localhost:8001`
 
-> **Note**: Both environments can run simultaneously since they use different ports. The CLI connects to port 8000 by default, so make sure the SQLite server is running for CLI usage.
+> **Note**: Both environments can run simultaneously since they use different ports.
 
 ### Docker Compose Profiles
 
@@ -127,10 +123,10 @@ docker-compose exec democrasite python3 populate_db.py
 #### Docker Container (PostgreSQL)
 ```bash
 # Using the dedicated populate-db service for PostgreSQL
-docker-compose -f docker/docker-compose.yml --profile postgres run --rm populate-db-postgres
+docker-compose --profile postgres run --rm populate-db-postgres
 
 # Or execute in running PostgreSQL container
-docker-compose -f docker/docker-compose.yml --profile postgres exec democrasite-postgres python3 populate_db.py
+docker-compose --profile postgres exec democrasite-postgres python3 populate_db.py
 ```
 
 This will create:
@@ -172,29 +168,6 @@ Sample usernames:
 - Some topics allow collaborative editing
 
 > **💡 Pro tip**: After populating test data, try searching for tags like "camping", "technology", or "gaming" to see the search functionality in action!
-
-#### Docker Commands
-
-```bash
-# Build the image
-docker build -t democrasite .
-
-# View logs (SQLite)
-docker-compose logs -f democrasite
-
-# View logs (PostgreSQL) 
-docker-compose -f docker/docker-compose.yml --profile postgres logs -f democrasite-postgres
-
-# Access container shell (SQLite)
-docker-compose exec democrasite bash
-
-# Access container shell (PostgreSQL)
-docker-compose -f docker/docker-compose.yml --profile postgres exec democrasite-postgres bash
-
-# Clean up everything
-docker-compose -f docker/docker-compose.yml down --volumes
-docker-compose -f docker/docker-compose.yml --profile postgres down --volumes
-```
 
 ### API Documentation
 
@@ -266,32 +239,6 @@ DELETE /topic/ABC123XY/users
 }
 ```
 
-## Interactive CLI
-
-The CLI provides a user-friendly interface:
-
-```bash
-python3 cli.py
-```
-
-Features:
-- User registration and login with persistent sessions
-- Topic creation with guided prompts (public/private)
-- Voting with answer validation
-- View topic results and statistics
-- **User Management**: Add/remove users from private topics
-- Comprehensive error handling and user feedback
-
-### CLI Menu Options:
-1. **Register** - Create new account (auto-login)
-2. **Login** - Sign into existing account
-3. **Logout** - Clear session
-4. **Create topic** - Interactive topic creation
-5. **Vote on topic** - Cast votes with validation
-6. **View topic** - See results and details
-7. **Manage topic users** - Add/remove users (private topics only)
-8. **Exit** - Quit application
-
 ## Development
 
 ### Running Tests
@@ -318,7 +265,30 @@ python3 -m pytest tests/test_topics.py::test_create_topic_success -v
 - **Production**: PostgreSQL - robust, scalable, production-ready
 - Tables auto-created on startup
 - Reset SQLite: `rm democrasite.db`
-- Reset PostgreSQL: `docker-compose -f docker/docker-compose.yml --profile postgres down --volumes`
+- Reset PostgreSQL: `docker-compose --profile postgres down --volumes`
+
+## Docker Commands
+
+```bash
+# Build the image
+docker build -t democrasite .
+
+# View logs (SQLite)
+docker-compose logs -f democrasite
+
+# View logs (PostgreSQL) 
+docker-compose --profile postgres logs -f democrasite-postgres
+
+# Access container shell (SQLite)
+docker-compose exec democrasite bash
+
+# Access container shell (PostgreSQL)
+docker-compose --profile postgres exec democrasite-postgres bash
+
+# Clean up everything
+docker-compose down --volumes
+docker-compose --profile postgres down --volumes
+```
 
 ## Architecture
 

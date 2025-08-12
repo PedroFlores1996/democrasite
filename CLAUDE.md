@@ -12,8 +12,8 @@ Democrasite is a FastAPI-based voting platform that allows users to create topic
 - **Start development server**: `python3 main.py`
 - **Start with virtual environment**: `source venv/bin/activate && python main.py`
 - **VS Code debug (F5)**: Configured for development mode with SQLite and no email verification
-- **Docker development (SQLite, no email verification)**: `docker-compose -f docker/docker-compose.yml up`
-- **Docker production (PostgreSQL, email verification)**: `docker-compose -f docker/docker-compose.yml --profile postgres up`
+- **Docker development (SQLite, no email verification)**: `docker-compose up`
+- **Docker production (PostgreSQL, email verification)**: `docker-compose --profile postgres up`
 
 ### Testing
 - **Run all tests**: `python -m pytest tests/ -v`

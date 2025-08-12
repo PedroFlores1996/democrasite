@@ -8,16 +8,16 @@ This guide covers PostgreSQL setup, testing, and verification procedures for Dem
 
 ```bash
 # Start PostgreSQL and the app with PostgreSQL
-docker-compose -f docker/docker-compose.yml --profile postgres up -d
+docker-compose --profile postgres up -d
 
 # The app will be available at http://localhost:8001 (port 8001 to avoid conflicts)
 # PostgreSQL will be available at localhost:5432
 
 # Populate with test data
-docker-compose -f docker/docker-compose.yml --profile postgres run --rm populate-db-postgres
+docker-compose --profile postgres run --rm populate-db-postgres
 
 # Stop everything
-docker-compose -f docker/docker-compose.yml --profile postgres down
+docker-compose --profile postgres down
 ```
 
 ### Production Environment Variables
@@ -47,10 +47,10 @@ SMTP_PASSWORD=your-app-password
 
 ```bash
 # With environment file
-docker-compose -f docker/docker-compose.yml --profile postgres --env-file .env up -d
+docker-compose --profile postgres --env-file .env up -d
 
 # Or with environment variables
-POSTGRES_PASSWORD=secure-password SECRET_KEY=jwt-secret docker-compose -f docker/docker-compose.yml --profile postgres up -d
+POSTGRES_PASSWORD=secure-password SECRET_KEY=jwt-secret docker-compose --profile postgres up -d
 ```
 
 ## 🗄️ Database Migrations
@@ -77,7 +77,7 @@ alembic history
 
 ```bash
 # Connect to PostgreSQL directly
-docker-compose -f docker/docker-compose.yml --profile postgres exec postgres psql -U democrasite_user -d democrasite_db
+docker-compose --profile postgres exec postgres psql -U democrasite_user -d democrasite_db
 
 # List tables
 \dt
@@ -122,10 +122,10 @@ curl -X POST "http://localhost:8001/api/register" \
   -d '{"username": "stagingtest", "email": "staging@example.com", "password": "password123"}'
 
 # Verify no user was created if email fails
-docker-compose -f docker/docker-compose.yml --profile postgres exec postgres psql -U democrasite_user -d democrasite_db -c "SELECT username FROM users WHERE username = 'stagingtest';"
+docker-compose --profile postgres exec postgres psql -U democrasite_user -d democrasite_db -c "SELECT username FROM users WHERE username = 'stagingtest';"
 
 # Verify pending registration was cleaned up on failure
-docker-compose -f docker/docker-compose.yml --profile postgres exec postgres psql -U democrasite_user -d democrasite_db -c "SELECT username FROM pending_registrations WHERE username = 'stagingtest';"
+docker-compose --profile postgres exec postgres psql -U democrasite_user -d democrasite_db -c "SELECT username FROM pending_registrations WHERE username = 'stagingtest';"
 
 # Test retry capability (should not get "already registered" error)
 curl -X POST "http://localhost:8001/api/register" \
@@ -215,7 +215,7 @@ alembic upgrade head
 ```bash
 cp .env.example .env
 # Edit .env with your SMTP credentials
-docker-compose -f docker/docker-compose.yml --profile postgres --env-file .env up -d
+docker-compose --profile postgres --env-file .env up -d
 ```
 
 ## 📈 Production Deployment Checklist
@@ -238,25 +238,25 @@ docker-compose -f docker/docker-compose.yml --profile postgres --env-file .env u
 ### Switch to PostgreSQL (Production Mode)
 ```bash
 # Stop SQLite setup if running
-docker-compose -f docker/docker-compose.yml down
+docker-compose down
 
 # Start PostgreSQL setup
-docker-compose -f docker/docker-compose.yml --profile postgres up -d
+docker-compose --profile postgres up -d
 
 # Apply migrations
-docker-compose -f docker/docker-compose.yml --profile postgres exec democrasite-postgres alembic upgrade head
+docker-compose --profile postgres exec democrasite-postgres alembic upgrade head
 
 # Populate with test data (optional)
-docker-compose -f docker/docker-compose.yml --profile postgres run --rm populate-db-postgres
+docker-compose --profile postgres run --rm populate-db-postgres
 ```
 
 ### Switch Back to SQLite (Development Mode)
 ```bash
 # Stop PostgreSQL setup
-docker-compose -f docker/docker-compose.yml --profile postgres down
+docker-compose --profile postgres down
 
 # Start SQLite setup
-docker-compose -f docker/docker-compose.yml up -d
+docker-compose up -d
 
 # Your SQLite data is preserved in the democrasite_db volume
 ```
@@ -266,7 +266,7 @@ docker-compose -f docker/docker-compose.yml up -d
 ### Check Current Schema
 ```sql
 -- Connect to PostgreSQL
-docker-compose -f docker/docker-compose.yml --profile postgres exec postgres psql -U democrasite_user -d democrasite_db
+docker-compose --profile postgres exec postgres psql -U democrasite_user -d democrasite_db
 
 -- View all tables
 \dt
@@ -286,13 +286,13 @@ docker-compose -f docker/docker-compose.yml --profile postgres exec postgres psq
 ### Verify Migration Status
 ```bash
 # Check current migration version
-docker-compose -f docker/docker-compose.yml --profile postgres exec democrasite-postgres alembic current
+docker-compose --profile postgres exec democrasite-postgres alembic current
 
 # View migration history
-docker-compose -f docker/docker-compose.yml --profile postgres exec democrasite-postgres alembic history
+docker-compose --profile postgres exec democrasite-postgres alembic history
 
 # Check for pending migrations
-docker-compose -f docker/docker-compose.yml --profile postgres exec democrasite-postgres alembic heads
+docker-compose --profile postgres exec democrasite-postgres alembic heads
 ```
 
 ## 📚 Further Reading
