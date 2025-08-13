@@ -85,8 +85,86 @@ class TopicUserService:
             "topic_id": topic.id,
             "topic_title": topic.title,
             "creator": topic.creator.username,
-            "allowed_users": [user.username for user in users],
-            "vote_details": user_votes
+            "users": [
+                {
+                    "username": user.username,
+                    "vote_count": sum(1 for vote in db.query(Vote).filter(Vote.topic_id == topic.id, Vote.user_id == user.id).all())
+                }
+                for user in users
+            ]
+        }
+    
+    def remove_single_user_from_topic(
+        self,
+        db: Session,
+        topic: Topic,
+        username_to_remove: str,
+        current_user: User
+    ) -> Dict[str, Any]:
+        """
+        Remove a specific user from topic access list and their votes.
+        Authorization: User can remove themselves, or topic creator can remove others.
+        """
+        # Validate basic permissions (private topic check)
+        if topic.is_public:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot manage users on public topics - they can vote freely"
+            )
+        
+        # Find the user to be removed
+        user_to_remove = db.query(User).filter(User.username == username_to_remove).first()
+        if not user_to_remove:
+            raise HTTPException(
+                status_code=404,
+                detail=f"User '{username_to_remove}' not found"
+            )
+        
+        # Authorization logic: self-removal OR creator removing others
+        is_self_removal = current_user.id == user_to_remove.id
+        is_creator = topic.created_by == current_user.id
+        
+        if not (is_self_removal or is_creator):
+            raise HTTPException(
+                status_code=403,
+                detail="You can only remove yourself, or if you're the topic creator, remove others"
+            )
+        
+        # Creator cannot remove themselves (use leave_topic for that)
+        if is_creator and is_self_removal:
+            raise HTTPException(
+                status_code=400,
+                detail="Topic creator cannot remove themselves - use leave topic instead"
+            )
+        
+        # Check if user has access to remove
+        access = (
+            db.query(TopicAccess)
+            .filter(
+                TopicAccess.topic_id == topic.id,
+                TopicAccess.user_id == user_to_remove.id
+            )
+            .first()
+        )
+        
+        if not access:
+            raise HTTPException(
+                status_code=404,
+                detail=f"User '{username_to_remove}' doesn't have access to this topic"
+            )
+        
+        # Remove access record
+        db.delete(access)
+        
+        # Remove user's votes on this topic
+        votes_removed = self._remove_user_votes(db, topic.id, user_to_remove.id)
+        
+        db.commit()
+        
+        return {
+            "message": f"User '{username_to_remove}' removed from topic",
+            "removed_user": username_to_remove,
+            "votes_removed": votes_removed
         }
     
     def _validate_user_management_permissions(self, topic: Topic, current_user: User):

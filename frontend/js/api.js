@@ -177,6 +177,13 @@ class API {
         return this.post(`/api/topics/${shareCode}/users`, { usernames });
     }
 
+    async removeTopicUsers(shareCode, usernames) {
+        return this.request(`/api/topics/${shareCode}/users`, {
+            method: 'DELETE',
+            body: JSON.stringify({ usernames }),
+        });
+    }
+
     async removeTopicUser(shareCode, username) {
         return this.delete(`/api/topics/${shareCode}/users/${username}`);
     }

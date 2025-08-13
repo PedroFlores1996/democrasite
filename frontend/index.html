@@ -56,7 +56,6 @@
                             </div>
                             <div class="user-info">
                                 <span id="username" class="user-name"></span>
-                                <span class="user-status">Active</span>
                             </div>
                         </div>
                         <div class="user-actions">
@@ -283,6 +282,52 @@
 
                     <div id="votingResults" class="voting-results">
                         <!-- Results will be shown here -->
+                    </div>
+                </div>
+
+                <!-- User Management Panel (for private topics, creator only) -->
+                <div id="userManagementPanel" class="user-management-panel hidden">
+                    <div class="panel-header">
+                        <h3 class="panel-title">
+                            <i class="fas fa-users"></i>
+                            Manage Access
+                        </h3>
+                        <div class="access-stats">
+                            <span id="totalAccessUsers">0 users have access</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Users Section -->
+                    <div class="add-users-section">
+                        <div class="section-header">
+                            <h4>Add Users</h4>
+                            <p class="section-description">Grant access to specific users by username</p>
+                        </div>
+                        <div class="add-users-form">
+                            <div class="input-group">
+                                <input type="text" id="addUserInput" placeholder="Enter username..." maxlength="50">
+                                <button type="button" id="addUserBtn" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus"></i>
+                                    Add
+                                </button>
+                            </div>
+                            <div id="addUserError" class="error-message hidden"></div>
+                        </div>
+                    </div>
+
+                    <!-- Users List Section -->
+                    <div class="users-list-section">
+                        <div class="section-header">
+                            <h4>Access List</h4>
+                            <p class="section-description">Users who can view and vote on this topic</p>
+                        </div>
+                        <div id="usersList" class="users-list">
+                            <!-- User list will be loaded here -->
+                        </div>
+                        <div id="usersListLoading" class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Loading users...
+                        </div>
                     </div>
                 </div>
             </div>

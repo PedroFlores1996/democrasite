@@ -334,9 +334,10 @@ class UIManager {
         return new Promise((resolve) => {
             // Create confirmation modal
             const modal = document.createElement('div');
-            modal.className = 'modal show';
+            modal.className = 'modal-overlay show';
+            modal.style.display = 'flex';
             modal.innerHTML = `
-                <div class="modal-content">
+                <div class="modal-container">
                     <div class="modal-header">
                         <h3>${title}</h3>
                     </div>
@@ -345,7 +346,7 @@ class UIManager {
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-primary confirm-yes">Yes</button>
-                        <button class="btn btn-outline confirm-no">No</button>
+                        <button class="btn btn-ghost confirm-no">No</button>
                     </div>
                 </div>
             `;

@@ -139,6 +139,18 @@ def remove_users_from_topic(
     return topic_user_service.remove_users_from_topic(db, topic, user_management, current_user)
 
 
+@router.delete("/topics/{share_code}/users/{username}")
+def remove_user_from_topic(
+    share_code: str,
+    username: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Remove a specific user from topic access list and their votes"""
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    return topic_user_service.remove_single_user_from_topic(db, topic, username, current_user)
+
+
 @router.get("/topics/{share_code}/users")
 def get_topic_users(
     share_code: str,
