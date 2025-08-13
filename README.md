@@ -183,15 +183,15 @@ Once running, visit:
 
 ### Topics
 - `POST /topics` - Create a new topic (public or private)
-- `GET /topic/{share_code}` - Get topic details and vote results
+- `GET /topics/{share_code}` - Get topic details and vote results
 
 ### Voting
-- `POST /topic/{share_code}/votes` - Vote on a topic
+- `POST /topics/{share_code}/votes` - Vote on a topic
 
 ### User Management (Private Topics)
-- `GET /topic/{share_code}/users` - View topic access list and votes (creator only)
-- `POST /topic/{share_code}/users` - Add users to private topic access list (creator only)
-- `DELETE /topic/{share_code}/users` - Remove users from access list and their votes (creator only)
+- `GET /topics/{share_code}/users` - View topic access list and votes (creator only)
+- `POST /topics/{share_code}/users` - Add users to private topic access list (creator only)
+- `DELETE /topics/{share_code}/users` - Remove users from access list and their votes (creator only)
 
 ## Usage Examples
 
@@ -218,7 +218,7 @@ POST /topics
 
 ### Voting
 ```json
-POST /topic/ABC123XY/votes
+POST /topics/ABC123XY/votes
 {
   "choice": "Python"
 }
@@ -226,14 +226,14 @@ POST /topic/ABC123XY/votes
 
 ### Managing Users (Private Topics)
 ```json
-POST /topic/ABC123XY/users
+POST /topics/ABC123XY/users
 {
   "usernames": ["dave", "eve"]
 }
 ```
 
 ```json
-DELETE /topic/ABC123XY/users
+DELETE /topics/ABC123XY/users
 {
   "usernames": ["alice"]
 }
