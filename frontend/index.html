@@ -262,7 +262,27 @@
                     </div>
 
                     <h1 id="topicTitle" class="topic-title">Topic Title</h1>
-                    <p id="topicDescription" class="topic-description">Topic description goes here...</p>
+                    <div class="topic-description-container">
+                        <p id="topicDescription" class="topic-description">Topic description goes here...</p>
+                        <button id="editDescriptionBtn" class="btn btn-ghost btn-sm edit-description-btn hidden" title="Edit description">
+                            <i class="fas fa-edit"></i>
+                            Edit
+                        </button>
+                        <div id="descriptionEditForm" class="description-edit-form hidden">
+                            <div class="input-wrapper">
+                                <textarea id="descriptionEditInput" class="description-edit-input" rows="3" maxlength="2000" placeholder="Enter description..."></textarea>
+                            </div>
+                            <div class="description-edit-actions">
+                                <button id="saveDescriptionBtn" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-check"></i>
+                                    Save
+                                </button>
+                                <button id="cancelDescriptionBtn" class="btn btn-ghost btn-sm">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="voting-panel">

@@ -30,6 +30,7 @@ class UserLogin(BaseModel):
 
 class TopicCreate(BaseModel):
     title: str
+    description: Optional[str] = None
     answers: List[str]
     is_public: bool = True
     is_editable: bool = False  # Allow others to add voting options
@@ -54,6 +55,7 @@ class TopicCreate(BaseModel):
 class TopicResponse(BaseModel):
     id: int
     title: str
+    description: Optional[str] = None
     share_code: str
     answers: List[str]
     is_public: bool
@@ -114,6 +116,16 @@ class UserManagementResponse(BaseModel):
     already_added_users: Optional[List[str]] = []
     votes_removed: Optional[int] = 0
 
+class TopicDescriptionUpdate(BaseModel):
+    description: Optional[str] = None
+    
+    @field_validator('description')
+    @classmethod
+    def validate_description(cls, v):
+        if v is not None and len(v) > 2000:
+            raise ValueError('Description must be 2000 characters or less')
+        return v
+
 # Topic Discovery & Search Schemas
 class SortOption(str, Enum):
     popular = "popular"      # Most votes total
@@ -126,6 +138,7 @@ class TopicSummary(BaseModel):
     """Lightweight topic info for search results"""
     id: int
     title: str
+    description: Optional[str] = None
     share_code: str
     created_at: datetime
     total_votes: int

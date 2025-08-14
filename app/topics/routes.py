@@ -11,6 +11,7 @@ from app.schemas import (
     UserManagementResponse,
     TopicsSearchResponse,
     SortOption,
+    TopicDescriptionUpdate,
 )
 from app.auth.utils import get_current_user
 from app.db.database import get_db
@@ -89,6 +90,7 @@ def get_topic(
     return TopicResponse(
         id=topic.id,
         title=topic.title,
+        description=topic.description,
         share_code=topic.share_code,
         answers=topic.answers,
         is_public=topic.is_public,
@@ -160,6 +162,18 @@ def get_topic_users(
     """Get list of users who have access to the topic"""
     topic = topic_service.find_topic_by_share_code(share_code, db)
     return topic_user_service.get_topic_users(db, topic, current_user)
+
+
+@router.patch("/topics/{share_code}/description")
+def update_topic_description(
+    share_code: str,
+    description_update: TopicDescriptionUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update topic description (creator only)"""
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    return topic_service.update_topic_description(db, topic, description_update, current_user)
 
 
 @router.delete("/topics/{share_code}")

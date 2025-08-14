@@ -134,6 +134,7 @@ class TopicSearchService:
                 TopicSummary(
                     id=topic.id,
                     title=topic.title,
+                    description=topic.description,
                     share_code=topic.share_code,
                     created_at=topic.created_at,
                     total_votes=vote_service.get_total_votes(db, topic.id),  # Use accurate count

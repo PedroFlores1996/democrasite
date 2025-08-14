@@ -234,6 +234,9 @@ class TopicsManager {
         // Show/hide user management panel for private topics (creator only)
         this.updateUserManagementPanel();
 
+        // Show/hide description edit button for creators
+        this.updateDescriptionEditButton();
+
         this.renderVotingSection();
     }
 
@@ -920,6 +923,113 @@ class TopicsManager {
         }
     }
 
+    // Description Editing Functionality
+    updateDescriptionEditButton() {
+        const editBtn = document.getElementById('editDescriptionBtn');
+        if (!editBtn || !this.currentTopic) return;
+
+        // Show edit button only if current user is the creator
+        const currentUser = authManager.currentUser;
+        const isCreator = currentUser && currentUser.username === this.currentTopic.created_by;
+
+        if (isCreator) {
+            editBtn.classList.remove('hidden');
+        } else {
+            editBtn.classList.add('hidden');
+        }
+    }
+
+    showDescriptionEditForm() {
+        const description = document.getElementById('topicDescription');
+        const editBtn = document.getElementById('editDescriptionBtn');
+        const editForm = document.getElementById('descriptionEditForm');
+        const editInput = document.getElementById('descriptionEditInput');
+
+        if (!description || !editBtn || !editForm || !editInput) return;
+
+        // Hide description text and edit button
+        description.classList.add('hidden');
+        editBtn.classList.add('hidden');
+
+        // Set current description in textarea
+        const currentDescription = this.currentTopic?.description || '';
+        editInput.value = currentDescription;
+
+        // Show edit form and focus textarea
+        editForm.classList.remove('hidden');
+        editInput.focus();
+    }
+
+    hideDescriptionEditForm() {
+        const description = document.getElementById('topicDescription');
+        const editBtn = document.getElementById('editDescriptionBtn');
+        const editForm = document.getElementById('descriptionEditForm');
+        const editInput = document.getElementById('descriptionEditInput');
+
+        if (!description || !editBtn || !editForm || !editInput) return;
+
+        // Show description text and edit button (if creator)
+        description.classList.remove('hidden');
+        const currentUser = authManager.currentUser;
+        const isCreator = currentUser && currentUser.username === this.currentTopic.created_by;
+        if (isCreator) {
+            editBtn.classList.remove('hidden');
+        }
+
+        // Hide edit form and clear input
+        editForm.classList.add('hidden');
+        editInput.value = '';
+    }
+
+    async saveDescription() {
+        const editInput = document.getElementById('descriptionEditInput');
+        const saveBtn = document.getElementById('saveDescriptionBtn');
+        
+        if (!editInput || !saveBtn || !this.currentTopic) return;
+
+        const newDescription = editInput.value.trim();
+        const originalDescription = this.currentTopic.description || '';
+
+        // Check if description actually changed
+        if (newDescription === originalDescription) {
+            this.hideDescriptionEditForm();
+            return;
+        }
+
+        try {
+            // Disable save button and show loading
+            saveBtn.disabled = true;
+            const originalContent = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            // Update description via API
+            await api.updateTopicDescription(this.currentTopic.share_code, newDescription);
+
+            // Update the current topic data
+            this.currentTopic.description = newDescription;
+
+            // Update the description text on the page
+            const descriptionElement = document.getElementById('topicDescription');
+            if (descriptionElement) {
+                descriptionElement.textContent = newDescription || 'No description provided';
+            }
+
+            // Hide the edit form
+            this.hideDescriptionEditForm();
+
+            // Show success message
+            showToast('Description updated successfully!', 'success');
+
+        } catch (error) {
+            console.error('Error updating description:', error);
+            showToast(error.message || 'Error updating description', 'error');
+        } finally {
+            // Re-enable save button
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-check"></i> Save';
+        }
+    }
+
     // Utility methods
     escapeHtml(text) {
         const div = document.createElement('div');
@@ -984,6 +1094,11 @@ window.submitNewOption = async () => {
     await topicsManager.addOption(option);
     window.cancelAddOption();
 };
+
+// Global functions for description editing
+window.showDescriptionEditForm = () => topicsManager.showDescriptionEditForm();
+window.hideDescriptionEditForm = () => topicsManager.hideDescriptionEditForm();
+window.saveDescription = () => topicsManager.saveDescription();
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
@@ -1149,6 +1264,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const errorDiv = document.getElementById('addUserError');
         if (errorDiv && !errorDiv.classList.contains('hidden')) {
             errorDiv.classList.add('hidden');
+        }
+    });
+
+    // Description editing event listeners
+    document.getElementById('editDescriptionBtn').addEventListener('click', () => {
+        topicsManager.showDescriptionEditForm();
+    });
+
+    document.getElementById('saveDescriptionBtn').addEventListener('click', async () => {
+        await topicsManager.saveDescription();
+    });
+
+    document.getElementById('cancelDescriptionBtn').addEventListener('click', () => {
+        topicsManager.hideDescriptionEditForm();
+    });
+
+    // Allow saving description with Ctrl+Enter
+    document.getElementById('descriptionEditInput').addEventListener('keydown', async (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            await topicsManager.saveDescription();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            topicsManager.hideDescriptionEditForm();
         }
     });
 });

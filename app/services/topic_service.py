@@ -20,6 +20,25 @@ class TopicService:
             raise HTTPException(status_code=404, detail="Invalid share code")
         return topic
 
+    def update_topic_description(self, db, topic, description_update, current_user):
+        """Update topic description (creator only)"""
+        # Validate that only creator can update description
+        if topic.created_by != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Only topic creator can update the description"
+            )
+        
+        # Update the description
+        topic.description = description_update.description
+        db.commit()
+        db.refresh(topic)
+        
+        return {
+            "message": "Topic description updated successfully",
+            "description": topic.description
+        }
+
 
 # Singleton instance
 topic_service = TopicService()

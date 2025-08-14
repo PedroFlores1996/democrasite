@@ -83,6 +83,14 @@ class API {
         return this.request(endpoint, { method: 'DELETE' });
     }
 
+    // PATCH request
+    async patch(endpoint, data) {
+        return this.request(endpoint, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    }
+
     // Authentication endpoints
     async register(username, email, password) {
         const response = await this.post('/api/register', { username, email, password });
@@ -161,6 +169,10 @@ class API {
 
     async leaveTopic(shareCode) {
         return this.post(`/api/topics/${shareCode}/leave`);
+    }
+
+    async updateTopicDescription(shareCode, description) {
+        return this.patch(`/api/topics/${shareCode}/description`, { description });
     }
 
     async vote(shareCode, choices) {
