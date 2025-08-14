@@ -1046,8 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await topicsManager.createTopic(topicData);
-            createTopicForm.reset();
-            resetVotingOptions();
+            resetCreateTopicForm();
         } catch (error) {
             // Error already handled in createTopic
         }
@@ -1153,6 +1152,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// Utility function to reset the entire create topic form
+function resetCreateTopicForm() {
+    const form = document.getElementById('createTopicForm');
+    
+    // Reset text inputs
+    document.getElementById('topicTitleInput').value = '';
+    document.getElementById('topicDescriptionInput').value = '';
+    document.getElementById('topicTagsInput').value = '';
+    
+    // Reset radio buttons to default values
+    document.getElementById('visibilityPublic').checked = true;
+    document.getElementById('editableFalse').checked = true;
+    document.getElementById('singleSelect').checked = true;
+    
+    // Reset voting options
+    resetVotingOptions();
+}
 
 // Utility function to reset voting options
 function resetVotingOptions() {
