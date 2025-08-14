@@ -201,7 +201,9 @@ class TopicsManager {
 
         // Update visibility badge
         const visibilityBadge = document.getElementById('topicVisibility');
-        visibilityBadge.textContent = this.currentTopic.is_public ? 'Public' : 'Private';
+        const icon = this.currentTopic.is_public ? 'fa-globe' : 'fa-lock';
+        const text = this.currentTopic.is_public ? 'Public' : 'Private';
+        visibilityBadge.innerHTML = `<i class="fas ${icon}"></i> ${text}`;
         visibilityBadge.className = `badge ${this.currentTopic.is_public ? 'badge-public' : 'badge-private'}`;
 
         // Update author initials
