@@ -137,9 +137,6 @@ class TopicsManager {
                 
                 <div class="topic-footer">
                     <div class="topic-author">
-                        <div class="author-avatar">
-                            <span>${this.escapeHtml(topic.creator_username).charAt(0).toUpperCase()}</span>
-                        </div>
                         <div class="author-info">
                             <span class="author-name">${this.escapeHtml(topic.creator_username)}</span>
                             <span class="topic-date">${this.formatDate(topic.created_at)}</span>

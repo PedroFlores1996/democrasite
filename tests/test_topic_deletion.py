@@ -69,11 +69,11 @@ def test_delete_topic_not_creator(client: TestClient, auth_headers, db):
     assert response.status_code == 200
     share_code = response.json()["share_code"]
     
-    # Create another verified user directly in database for testing
-    from tests.conftest import create_verified_test_user
+    # Create another user directly in database for testing
+    from tests.conftest import create_test_user
     from app.auth.utils import create_access_token
     
-    other_user = create_verified_test_user(db, "otheruser", "otheruser@example.com")
+    other_user = create_test_user(db, "otheruser", "otheruser@example.com")
     other_token = create_access_token(data={"sub": other_user.username})
     other_headers = {"Authorization": f"Bearer {other_token}"}
     
