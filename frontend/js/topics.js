@@ -125,6 +125,7 @@ class TopicsManager {
                     ${topic.tags && topic.tags.length > 0 ? `
                         <div class="topic-tags">
                             ${topic.tags.slice(0, 2).map(tag => `<span class="topic-tag">${this.escapeHtml(tag)}</span>`).join('')}
+                            ${topic.tags.length > 2 ? `<span class="topic-tag-more">+${topic.tags.length - 2}</span>` : ''}
                         </div>
                     ` : ''}
                 </div>
