@@ -7,8 +7,6 @@ from app.schemas import (
     VoteSubmit,
     OptionAdd,
     TopicResponse,
-    UserManagement,
-    UserManagementResponse,
     TopicsSearchResponse,
     SortOption,
     TopicDescriptionUpdate,
@@ -117,30 +115,6 @@ def add_option_to_topic(
     return topic_option_service.add_option(db, topic, option, current_user)
 
 
-@router.post("/topics/{share_code}/users", response_model=UserManagementResponse)
-def add_users_to_topic(
-    share_code: str,
-    user_management: UserManagement,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Add users to a private topic's access list"""
-    topic = topic_service.find_topic_by_share_code(share_code, db)
-    return topic_user_service.add_users_to_topic(db, topic, user_management, current_user)
-
-
-@router.delete("/topics/{share_code}/users", response_model=UserManagementResponse)
-def remove_users_from_topic(
-    share_code: str,
-    user_management: UserManagement,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Remove users from topic access list and their votes"""
-    topic = topic_service.find_topic_by_share_code(share_code, db)
-    return topic_user_service.remove_users_from_topic(db, topic, user_management, current_user)
-
-
 @router.delete("/topics/{share_code}/users/{username}")
 def remove_user_from_topic(
     share_code: str,
@@ -148,20 +122,9 @@ def remove_user_from_topic(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Remove a specific user from topic access list and their votes"""
+    """Remove a user from topic access list and their votes. Users can remove themselves, or topic creator can remove others."""
     topic = topic_service.find_topic_by_share_code(share_code, db)
     return topic_user_service.remove_single_user_from_topic(db, topic, username, current_user)
-
-
-@router.get("/topics/{share_code}/users")
-def get_topic_users(
-    share_code: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Get list of users who have access to the topic"""
-    topic = topic_service.find_topic_by_share_code(share_code, db)
-    return topic_user_service.get_topic_users(db, topic, current_user)
 
 
 @router.patch("/topics/{share_code}/description")
@@ -187,14 +150,5 @@ def delete_topic(
     return topic_user_service.delete_topic(db, topic, current_user)
 
 
-@router.post("/topics/{share_code}/leave")
-def leave_topic(
-    share_code: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Leave a private topic (remove access for current user)"""
-    topic = topic_service.find_topic_by_share_code(share_code, db)
-    return topic_user_service.leave_topic(db, topic, current_user)
 
 
