@@ -16,7 +16,7 @@ class TopicSearchService:
         current_user: User,
         page: int = 1,
         limit: int = 20,
-        title: Optional[str] = None,
+        search: Optional[str] = None,
         tags: Optional[str] = None,
         sort: SortOption = SortOption.popular
     ) -> TopicsSearchResponse:
@@ -25,10 +25,10 @@ class TopicSearchService:
         Uses split query approach: public topics (from DB) + user's accessible private topics (from relationship).
         """
         # Get public topics with filters and sorting
-        public_topics = self._get_public_topics(db, title, tags, sort)
+        public_topics = self._get_public_topics(db, search, tags, sort)
         
         # Get user's accessible private topics (includes created topics)
-        private_topics = self._get_user_accessible_topics(current_user, title, tags)
+        private_topics = self._get_user_accessible_topics(current_user, search, tags)
         
         # Combine and deduplicate
         all_topics = self._combine_and_deduplicate_topics(public_topics, private_topics)
@@ -56,19 +56,19 @@ class TopicSearchService:
             has_prev=has_prev
         )
     
-    def _get_public_topics(self, db: Session, title: Optional[str], tags: Optional[str], sort: SortOption) -> List[Topic]:
+    def _get_public_topics(self, db: Session, search: Optional[str], tags: Optional[str], sort: SortOption) -> List[Topic]:
         """Get public topics with filters only - sorting applied later for consistency"""
         query = db.query(Topic).filter(Topic.is_public == True)
         
         # Add title/share code search filter
-        if title:
-            title_lower = title.lower()
-            tag_condition = func.lower(func.json_extract(Topic.tags, '$')).like(f'%"{title_lower}"%')
+        if search:
+            search_lower = search.lower()
+            tag_condition = func.lower(func.json_extract(Topic.tags, '$')).like(f'%"{search_lower}"%')
             
             query = query.filter(
                 or_(
-                    Topic.title.ilike(f"%{title}%"),
-                    Topic.share_code.ilike(f"%{title}%"),
+                    Topic.title.ilike(f"%{search}%"),
+                    Topic.share_code.ilike(f"%{search}%"),
                     tag_condition
                 )
             )
@@ -80,7 +80,7 @@ class TopicSearchService:
         # No sorting here - will be applied consistently to combined results
         return query.all()
     
-    def _get_user_accessible_topics(self, current_user: User, title: Optional[str], tags: Optional[str]) -> List[Topic]:
+    def _get_user_accessible_topics(self, current_user: User, search: Optional[str], tags: Optional[str]) -> List[Topic]:
         """Get user's accessible private topics (created + granted access) and apply filters"""
         # Combine created topics and accessible topics, avoiding duplicates
         created_topic_ids = {t.id for t in current_user.created_topics}
@@ -99,13 +99,13 @@ class TopicSearchService:
         # Apply filters in Python
         filtered_topics = all_accessible_topics
         
-        if title:
-            title_lower = title.lower()
+        if search:
+            search_lower = search.lower()
             filtered_topics = [
                 t for t in filtered_topics 
-                if (title_lower in t.title.lower() or 
-                    title_lower in t.share_code.lower() or
-                    (t.tags and any(title_lower in tag.lower() for tag in t.tags)))
+                if (search_lower in t.title.lower() or 
+                    search_lower in t.share_code.lower() or
+                    (t.tags and any(search_lower in tag.lower() for tag in t.tags)))
             ]
         
         if tags:

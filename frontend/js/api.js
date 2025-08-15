@@ -145,7 +145,7 @@ class API {
     // Topic endpoints
     async getTopics(search = '', tags = '', sort = 'popular', limit = 20, page = 1) {
         const params = new URLSearchParams();
-        if (search) params.append('title', search);  // Backend expects 'title' not 'search'
+        if (search) params.append('search', search);
         if (tags) params.append('tags', tags);
         if (sort) params.append('sort', sort);
         params.append('limit', limit.toString());

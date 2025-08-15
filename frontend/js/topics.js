@@ -10,14 +10,19 @@ class TopicsManager {
         this.favorites = new Set(); // Track favorite topic share codes
         this.cachedTopics = null;
         this.cacheTimestamp = null;
+        this.cachedSearchQuery = '';
+        this.cachedSort = 'popular';
         this.cacheValidityMs = 30000; // 30 seconds cache
         this.isLoading = false; // Prevent concurrent requests
+        this.currentSearchRequest = null; // Track current search request
     }
 
-    isCacheValid() {
+    isCacheValid(search, sort) {
         return this.cachedTopics && 
                this.cacheTimestamp && 
-               (Date.now() - this.cacheTimestamp) < this.cacheValidityMs;
+               (Date.now() - this.cacheTimestamp) < this.cacheValidityMs &&
+               this.cachedSearchQuery === search &&
+               this.cachedSort === sort;
     }
 
     updateFavoritesFromTopics() {
@@ -68,16 +73,21 @@ class TopicsManager {
                 return;
             }
 
+            // Cancel previous request if it exists
+            if (this.currentSearchRequest) {
+                console.log('Cancelling previous search request');
+                this.currentSearchRequest.cancelled = true;
+            }
+
             // Prevent concurrent requests - if already loading, wait for it to complete
             if (this.isLoading && !forceRefresh) {
+                console.log('Skipping loadTopics - already loading');
                 return;
             }
 
             // Use cache if valid and no search/sort changes and not forcing refresh
             if (!forceRefresh && 
-                this.isCacheValid() && 
-                search === this.searchQuery && 
-                this.cachedTopics) {
+                this.isCacheValid(search, this.currentSort)) {
                 this.topics = this.cachedTopics;
                 this.updateFavoritesFromTopics();
                 this.renderTopics();
@@ -89,17 +99,29 @@ class TopicsManager {
                 return;
             }
 
-            // Set loading state
+            // Set loading state and create request tracker
             this.isLoading = true;
+            const requestId = Date.now();
+            this.currentSearchRequest = { id: requestId, cancelled: false };
+            console.log(`Loading topics: search="${search}", sort="${this.currentSort}", requestId=${requestId}`);
 
             this.searchQuery = search;
             const response = await api.getTopics(search, '', this.currentSort, 100);
+            
+            // Check if this request was cancelled
+            if (this.currentSearchRequest && this.currentSearchRequest.cancelled) {
+                console.log(`Request ${requestId} was cancelled, ignoring response`);
+                return;
+            }
+            
             // Extract topics array from the paginated response
             this.topics = Array.isArray(response) ? response : (response.topics || []);
 
-            // Cache the results
+            // Cache the results with search and sort context
             this.cachedTopics = [...this.topics];
             this.cacheTimestamp = Date.now();
+            this.cachedSearchQuery = search;
+            this.cachedSort = this.currentSort;
 
             // Update favorites set from topic data (no separate API call needed)
             this.updateFavoritesFromTopics();
@@ -131,8 +153,9 @@ class TopicsManager {
                 this.renderTopics();
             }
         } finally {
-            // Always clear loading state
+            // Always clear loading state and current request
             this.isLoading = false;
+            this.currentSearchRequest = null;
         }
     }
 
@@ -610,9 +633,7 @@ class TopicsManager {
     // Apply sort to topics
     async applySort(sort) {
         this.currentSort = sort;
-        // Invalidate cache when sort changes
-        this.cachedTopics = null;
-        this.cacheTimestamp = null;
+        // Cache will be automatically invalidated due to sort change
         await this.loadTopics(this.searchQuery, true, true); // Force refresh when sort changes
     }
 

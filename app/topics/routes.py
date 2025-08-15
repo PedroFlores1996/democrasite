@@ -41,7 +41,7 @@ def search_topics(
     limit: int = Query(
         20, ge=1, le=100, description="Number of results per page (max 100)"
     ),
-    title: Optional[str] = Query(None, description="Search in topic titles and share codes"),
+    search: Optional[str] = Query(None, description="Search in topic titles and share codes"),
     tags: Optional[str] = Query(None, description="Comma-separated tags to filter by"),
     sort: SortOption = Query(SortOption.popular, description="Sort order"),
     current_user: User = Depends(get_current_user),
@@ -52,7 +52,7 @@ def search_topics(
     Shows public topics + private topics user has access to.
     All topics require authentication to view.
     """
-    return topic_search_service.search_topics(db, current_user, page, limit, title, tags, sort)
+    return topic_search_service.search_topics(db, current_user, page, limit, search, tags, sort)
 
 
 @router.post("/topics/{share_code}/votes")
