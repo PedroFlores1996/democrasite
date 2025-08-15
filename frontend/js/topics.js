@@ -19,7 +19,7 @@ class TopicsManager {
             }
 
             this.searchQuery = search;
-            const response = await api.getTopics(search, '', this.currentSort);
+            const response = await api.getTopics(search, '', this.currentSort, 100);
             // Extract topics array from the paginated response
             this.topics = Array.isArray(response) ? response : (response.topics || []);
 
@@ -510,7 +510,7 @@ class TopicsManager {
     // Silently refresh topics data to update vote counts
     async refreshTopicsData() {
         try {
-            const response = await api.getTopics(this.searchQuery, '', this.currentSort);
+            const response = await api.getTopics(this.searchQuery, '', this.currentSort, 100);
             this.topics = Array.isArray(response) ? response : (response.topics || []);
         } catch (error) {
             // Silently fail - don't show error to user for background refresh
