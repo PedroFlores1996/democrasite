@@ -1,7 +1,7 @@
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 
-from app.db.models import Topic, User, TopicAccess
+from app.db.models import Topic, User
 from app.schemas import TopicCreate
 from app.services.topic_service import topic_service
 
@@ -71,13 +71,16 @@ class TopicCreationService:
         allowed_usernames: list[str]
     ):
         """
-        Add allowed users to private topic access list
+        Add allowed users to private topic access list using relationship
         """
+        topic = db.query(Topic).filter(Topic.id == topic_id).first()
+        if not topic:
+            return
+            
         for username in allowed_usernames:
             user = db.query(User).filter(User.username == username).first()
-            if user:
-                access = TopicAccess(topic_id=topic_id, user_id=user.id)
-                db.add(access)
+            if user and user not in topic.accessible_users:
+                topic.accessible_users.append(user)
         
         db.commit()
     

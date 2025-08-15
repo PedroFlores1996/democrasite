@@ -2,7 +2,7 @@ from typing import Dict
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from app.db.models import Topic, Vote, TopicAccess, User
+from app.db.models import Topic, Vote, User
 from app.schemas import VoteSubmit
 
 
@@ -64,18 +64,14 @@ class VoteService:
     def _check_voting_permissions(self, db: Session, topic: Topic, current_user: User):
         """
         Check if user can vote on this topic.
-        For private topics, user must be in the allowed users list (which includes creator by default).
+        For private topics, user must be in the accessible users list or be the creator.
         """
         if not topic.is_public:
-            access = (
-                db.query(TopicAccess)
-                .filter(
-                    TopicAccess.topic_id == topic.id,
-                    TopicAccess.user_id == current_user.id
-                )
-                .first()
-            )
-            if not access:
+            # Check if user has access via relationship or is the creator
+            has_access = (current_user in topic.accessible_users or 
+                         topic.created_by == current_user.id)
+            
+            if not has_access:
                 raise HTTPException(
                     status_code=403, 
                     detail="Access denied to this private topic"
@@ -84,25 +80,19 @@ class VoteService:
     def check_and_grant_access(self, db: Session, topic: Topic, current_user: User):
         """
         Check if user has access to topic. For private topics accessed via share code,
-        automatically grant access by adding user to allowed list.
+        automatically grant access by adding user to accessible users list.
         """
         if topic.is_public:
             return  # Public topics don't need access control
         
-        # Check if user already has access
-        access = (
-            db.query(TopicAccess)
-            .filter(
-                TopicAccess.topic_id == topic.id,
-                TopicAccess.user_id == current_user.id
-            )
-            .first()
-        )
-        
-        if not access:
-            # Auto-add user to allowed list when accessing via share code
-            new_access = TopicAccess(topic_id=topic.id, user_id=current_user.id)
-            db.add(new_access)
+        # Check if user already has access (creator always has access)
+        if topic.created_by == current_user.id:
+            return  # Creator always has access
+            
+        # Check if user already has access via relationship
+        if current_user not in topic.accessible_users:
+            # Auto-add user to accessible list when accessing via share code
+            topic.accessible_users.append(current_user)
             db.commit()
     
     def _validate_vote_choice(self, topic: Topic, choice: str):

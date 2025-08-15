@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, asc, or_
 
-from app.db.models import Topic, User, TopicAccess
+from app.db.models import Topic, User
 from app.schemas import SortOption, TopicSummary, TopicsSearchResponse
 from app.services.vote_service import vote_service
 
@@ -22,19 +22,26 @@ class TopicSearchService:
     ) -> TopicsSearchResponse:
         """
         Search topics for authenticated user with filtering, pagination, and sorting.
-        Shows: public topics + private topics user created + private topics user has access to.
+        Uses split query approach: public topics (from DB) + user's accessible private topics (from relationship).
         """
-        # Build the query
-        query = self._build_search_query(db, current_user, title, tags, sort)
+        # Get public topics with filters and sorting
+        public_topics = self._get_public_topics(db, title, tags, sort)
         
-        # Get total count before pagination
-        total = query.count()
+        # Get user's accessible private topics (includes created topics)
+        private_topics = self._get_user_accessible_topics(current_user, title, tags)
         
-        # Apply pagination and get results
-        topics = self._paginate_query(query, page, limit)
+        # Combine and deduplicate
+        all_topics = self._combine_and_deduplicate_topics(public_topics, private_topics)
+        
+        # Apply sorting to combined results if needed
+        sorted_topics = self._apply_final_sorting(all_topics, sort)
+        
+        # Apply pagination
+        total = len(sorted_topics)
+        paginated_topics = self._paginate_topic_list(sorted_topics, page, limit)
         
         # Build response objects
-        topic_summaries = self._build_topic_summaries(db, topics)
+        topic_summaries = self._build_topic_summaries(db, paginated_topics)
         
         # Calculate pagination info
         has_next = (page * limit) < total
@@ -49,30 +56,12 @@ class TopicSearchService:
             has_prev=has_prev
         )
     
-    def _build_search_query(
-        self,
-        db: Session,
-        current_user: User,
-        title: Optional[str],
-        tags: Optional[str],
-        sort: SortOption
-    ):
-        """Build the base search query with filters and sorting"""
-        # Show public topics + private topics user has access to + topics created by user
-        query = db.query(Topic).filter(
-            or_(
-                Topic.is_public == True,  # Public topics
-                Topic.created_by == current_user.id,  # Topics created by user
-                Topic.id.in_(  # Private topics user has access to
-                    db.query(TopicAccess.topic_id)
-                    .filter(TopicAccess.user_id == current_user.id)
-                )
-            )
-        )
+    def _get_public_topics(self, db: Session, title: Optional[str], tags: Optional[str], sort: SortOption) -> List[Topic]:
+        """Get public topics with filters and sorting - fast indexed query"""
+        query = db.query(Topic).filter(Topic.is_public == True)
         
-        # Add title, share code, and tags search filter
+        # Add title/share code search filter
         if title:
-            # Create tag condition for the title search term
             title_lower = title.lower()
             tag_condition = func.lower(func.json_extract(Topic.tags, '$')).like(f'%"{title_lower}"%')
             
@@ -91,7 +80,83 @@ class TopicSearchService:
         # Add sorting
         query = self._add_sorting(db, query, sort)
         
-        return query
+        return query.all()
+    
+    def _get_user_accessible_topics(self, current_user: User, title: Optional[str], tags: Optional[str]) -> List[Topic]:
+        """Get user's accessible private topics (created + granted access) and apply filters"""
+        # Combine created topics and accessible topics, avoiding duplicates
+        created_topic_ids = {t.id for t in current_user.created_topics}
+        accessible_topic_ids = {t.id for t in current_user.accessible_topics}
+        all_accessible_ids = created_topic_ids | accessible_topic_ids
+        
+        # Get all topics user has access to
+        all_accessible_topics = []
+        for topic in current_user.created_topics:
+            all_accessible_topics.append(topic)
+        
+        for topic in current_user.accessible_topics:
+            if topic.id not in created_topic_ids:  # Avoid duplicates
+                all_accessible_topics.append(topic)
+        
+        # Apply filters in Python
+        filtered_topics = all_accessible_topics
+        
+        if title:
+            title_lower = title.lower()
+            filtered_topics = [
+                t for t in filtered_topics 
+                if (title_lower in t.title.lower() or 
+                    title_lower in t.share_code.lower() or
+                    (t.tags and any(title_lower in tag.lower() for tag in t.tags)))
+            ]
+        
+        if tags:
+            tag_list = [tag.strip().lower() for tag in tags.split(",")]
+            filtered_topics = [
+                t for t in filtered_topics
+                if t.tags and any(
+                    any(search_tag in topic_tag.lower() for topic_tag in t.tags)
+                    for search_tag in tag_list
+                )
+            ]
+        
+        return filtered_topics
+    
+    def _combine_and_deduplicate_topics(self, public_topics: List[Topic], private_topics: List[Topic]) -> List[Topic]:
+        """Combine public and private topics, removing duplicates"""
+        # Use a set to track IDs and avoid duplicates
+        seen_ids = set()
+        combined_topics = []
+        
+        # Add public topics first
+        for topic in public_topics:
+            if topic.id not in seen_ids:
+                seen_ids.add(topic.id)
+                combined_topics.append(topic)
+        
+        # Add private topics (skip if already in public topics)
+        for topic in private_topics:
+            if topic.id not in seen_ids:
+                seen_ids.add(topic.id)
+                combined_topics.append(topic)
+        
+        return combined_topics
+    
+    def _apply_final_sorting(self, topics: List[Topic], sort: SortOption) -> List[Topic]:
+        """Apply sorting to the final combined topic list"""
+        if sort == SortOption.recent:
+            return sorted(topics, key=lambda t: t.created_at, reverse=True)
+        elif sort == SortOption.favorites:
+            return sorted(topics, key=lambda t: t.favorite_count or 0, reverse=True)
+        elif sort == SortOption.alphabetical:
+            return sorted(topics, key=lambda t: t.title.lower())
+        else:  # popular or votes
+            return sorted(topics, key=lambda t: t.vote_count or 0, reverse=True)
+    
+    def _paginate_topic_list(self, topics: List[Topic], page: int, limit: int) -> List[Topic]:
+        """Apply pagination to a list of topics"""
+        offset = (page - 1) * limit
+        return topics[offset:offset + limit]
     
     def _add_tags_filter(self, query, tags: str):
         """Add tags filtering to the query"""

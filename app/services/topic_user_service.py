@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from app.db.models import Topic, User, TopicAccess, Vote
+from app.db.models import Topic, User, Vote
 from app.schemas import UserManagement, UserManagementResponse
 
 
@@ -64,19 +64,13 @@ class TopicUserService:
         current_user: User
     ) -> Dict[str, Any]:
         """
-        Get list of users who have access to the topic
+        Get list of users who have access to the topic using relationship
         """
         # Validate permissions
         self._validate_view_permissions(topic, current_user)
         
-        # Get users with access
-        access_records = (
-            db.query(TopicAccess)
-            .filter(TopicAccess.topic_id == topic.id)
-            .all()
-        )
-        user_ids = [access.user_id for access in access_records]
-        users = db.query(User).filter(User.id.in_(user_ids)).all()
+        # Get users with access via relationship
+        users = topic.accessible_users
         
         # Get vote details
         user_votes = self._get_user_votes(db, topic.id, users)
@@ -137,24 +131,15 @@ class TopicUserService:
                 detail="Topic creator cannot remove themselves - use leave topic instead"
             )
         
-        # Check if user has access to remove
-        access = (
-            db.query(TopicAccess)
-            .filter(
-                TopicAccess.topic_id == topic.id,
-                TopicAccess.user_id == user_to_remove.id
-            )
-            .first()
-        )
-        
-        if not access:
+        # Check if user has access to remove (via relationship)
+        if user_to_remove not in topic.accessible_users:
             raise HTTPException(
                 status_code=404,
                 detail=f"User '{username_to_remove}' doesn't have access to this topic"
             )
         
-        # Remove access record
-        db.delete(access)
+        # Remove access via relationship
+        topic.accessible_users.remove(user_to_remove)
         
         # Remove user's votes on this topic
         votes_removed = self._remove_user_votes(db, topic.id, user_to_remove.id)
@@ -206,11 +191,14 @@ class TopicUserService:
         usernames: List[str]
     ) -> Dict[str, List[str]]:
         """
-        Process adding users to topic access list
+        Process adding users to topic access list using relationship
         """
         added_users = []
         not_found_users = []
         already_added_users = []
+        
+        # Get the topic
+        topic = db.query(Topic).filter(Topic.id == topic_id).first()
         
         for username in usernames:
             # Check if user exists
@@ -219,23 +207,13 @@ class TopicUserService:
                 not_found_users.append(username)
                 continue
             
-            # Check if user already has access
-            existing_access = (
-                db.query(TopicAccess)
-                .filter(
-                    TopicAccess.topic_id == topic_id,
-                    TopicAccess.user_id == user.id
-                )
-                .first()
-            )
-            
-            if existing_access:
+            # Check if user already has access (via relationship)
+            if user in topic.accessible_users:
                 already_added_users.append(username)
                 continue
             
-            # Add user access
-            access = TopicAccess(topic_id=topic_id, user_id=user.id)
-            db.add(access)
+            # Add user to accessible_users relationship
+            topic.accessible_users.append(user)
             added_users.append(username)
         
         return {
@@ -251,11 +229,14 @@ class TopicUserService:
         usernames: List[str]
     ) -> Dict[str, Any]:
         """
-        Process removing users from topic access list
+        Process removing users from topic access list using relationship
         """
         removed_users = []
         not_found_users = []
         votes_removed = 0
+        
+        # Get the topic
+        topic = db.query(Topic).filter(Topic.id == topic_id).first()
         
         for username in usernames:
             # Check if user exists
@@ -264,18 +245,9 @@ class TopicUserService:
                 not_found_users.append(username)
                 continue
             
-            # Remove access record
-            access = (
-                db.query(TopicAccess)
-                .filter(
-                    TopicAccess.topic_id == topic_id,
-                    TopicAccess.user_id == user.id
-                )
-                .first()
-            )
-            
-            if access:
-                db.delete(access)
+            # Check if user has access and remove via relationship
+            if user in topic.accessible_users:
+                topic.accessible_users.remove(user)
                 removed_users.append(username)
             
             # Remove user's votes on this topic
@@ -366,12 +338,16 @@ class TopicUserService:
         return vote_count
     
     def _delete_topic_access(self, db: Session, topic_id: int) -> int:
-        """Delete all access records for a topic"""
-        access_records = db.query(TopicAccess).filter(TopicAccess.topic_id == topic_id).all()
-        access_count = len(access_records)
+        """Delete all access records for a topic using relationship"""
+        topic = db.query(Topic).filter(Topic.id == topic_id).first()
+        if not topic:
+            return 0
+            
+        access_count = len(topic.accessible_users)
         
-        for access in access_records:
-            db.delete(access)
+        # Clear all users from the accessible_users relationship
+        # This will delete the association table records
+        topic.accessible_users.clear()
         
         return access_count
     
@@ -398,17 +374,8 @@ class TopicUserService:
                 detail="Topic creator cannot leave their own topic"
             )
         
-        # Check if user has access to the topic
-        access = (
-            db.query(TopicAccess)
-            .filter(
-                TopicAccess.topic_id == topic.id,
-                TopicAccess.user_id == current_user.id
-            )
-            .first()
-        )
-        
-        if not access:
+        # Check if user has access to the topic (via relationship)
+        if current_user not in topic.accessible_users:
             raise HTTPException(
                 status_code=404,
                 detail="You don't have access to this topic"
@@ -429,8 +396,8 @@ class TopicUserService:
             # Update denormalized vote count
             topic.vote_count = max(0, (topic.vote_count or 0) - 1)
         
-        # Remove access
-        db.delete(access)
+        # Remove access via relationship
+        topic.accessible_users.remove(current_user)
         db.commit()
         
         return {"message": f"You have left the topic '{topic.title}'"}

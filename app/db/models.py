@@ -12,6 +12,15 @@ user_topic_favorites = Table(
     Column('created_at', DateTime, default=lambda: datetime.now(timezone.utc))
 )
 
+# Association table for User-Topic access (many-to-many) - replaces TopicAccess entity
+user_topic_access = Table(
+    'user_topic_access',
+    Base.metadata,
+    Column('user_id', Integer, ForeignKey('users.id'), primary_key=True),
+    Column('topic_id', Integer, ForeignKey('topics.id'), primary_key=True),
+    Column('created_at', DateTime, default=lambda: datetime.now(timezone.utc))
+)
+
 class User(Base):
     __tablename__ = "users"
     
@@ -24,6 +33,7 @@ class User(Base):
     votes = relationship("Vote", back_populates="user")
     created_topics = relationship("Topic", back_populates="creator")
     favorite_topics = relationship("Topic", secondary=user_topic_favorites, back_populates="favorited_by")
+    accessible_topics = relationship("Topic", secondary=user_topic_access, back_populates="accessible_users")
 
 class Topic(Base):
     __tablename__ = "topics"
@@ -44,21 +54,8 @@ class Topic(Base):
     
     votes = relationship("Vote", back_populates="topic")
     creator = relationship("User", back_populates="created_topics")
-    allowed_users = relationship("TopicAccess", back_populates="topic")
     favorited_by = relationship("User", secondary=user_topic_favorites, back_populates="favorite_topics")
-
-class TopicAccess(Base):
-    __tablename__ = "topic_access"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    topic_id = Column(Integer, ForeignKey("topics.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    
-    __table_args__ = (UniqueConstraint('topic_id', 'user_id', name='unique_topic_user_access'),)
-    
-    topic = relationship("Topic", back_populates="allowed_users")
-    user = relationship("User")
+    accessible_users = relationship("User", secondary=user_topic_access, back_populates="accessible_topics")
 
 class PendingRegistration(Base):
     __tablename__ = "pending_registrations"

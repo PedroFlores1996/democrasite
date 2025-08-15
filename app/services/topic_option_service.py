@@ -2,7 +2,7 @@ from typing import Dict
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from app.db.models import Topic, TopicAccess, User
+from app.db.models import Topic, User
 from app.schemas import OptionAdd
 
 
@@ -67,17 +67,8 @@ class TopicOptionService:
         if topic.created_by == current_user.id:
             return
         
-        # Check if user is in allowed users list
-        access = (
-            db.query(TopicAccess)
-            .filter(
-                TopicAccess.topic_id == topic.id,
-                TopicAccess.user_id == current_user.id
-            )
-            .first()
-        )
-        
-        if not access:
+        # Check if user is in accessible users list via relationship
+        if current_user not in topic.accessible_users:
             raise HTTPException(
                 status_code=403,
                 detail="Access denied to this private topic"
