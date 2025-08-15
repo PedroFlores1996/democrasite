@@ -135,13 +135,14 @@ class TopicsManager {
                     <p class="topic-description">${this.escapeHtml(topic.description || 'No description provided')}</p>
                 </div>
                 
-                <div class="topic-footer">
-                    <div class="topic-author">
-                        <div class="author-info">
-                            <span class="author-name">${this.escapeHtml(topic.creator_username)}</span>
-                            <span class="topic-date">${this.formatDate(topic.created_at)}</span>
-                        </div>
+                <div class="topic-author">
+                    <div class="author-info">
+                        <span class="author-name">${this.escapeHtml(topic.creator_username)}</span>
+                        <span class="topic-date">${this.formatDate(topic.created_at)}</span>
                     </div>
+                </div>
+                
+                <div class="topic-footer">
                     
                     <div class="topic-stats">
                         <div class="topic-stat">

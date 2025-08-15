@@ -945,10 +945,21 @@ body {
 }
 
 .topic-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    position: relative;
     margin-bottom: 16px;
+    min-height: 32px;
+}
+
+.topic-card-header .topic-meta {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.topic-card-header .topic-tags {
+    position: absolute;
+    top: 0;
+    right: 0;
 }
 
 .topic-title {
@@ -1180,8 +1191,8 @@ body {
 }
 
 .author-avatar {
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: var(--gradient-primary);
     display: flex;
@@ -1189,6 +1200,7 @@ body {
     justify-content: center;
     font-weight: 700;
     color: white;
+    font-size: 14px;
 }
 
 .author-details {
