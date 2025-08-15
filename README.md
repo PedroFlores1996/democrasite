@@ -14,9 +14,14 @@ A FastAPI-based democratic voting platform that allows users to create topics wi
 - **RESTful API**: Clean REST endpoints for all operations
 - **Comprehensive Testing**: Full test suite with VS Code integration
 
-## Quick Start
+## Running the Application
 
-### Running the Application
+### Docker Compose Profiles
+
+Using a single `docker-compose.yml` with profiles for different environments:
+- **Default (no profile)**: SQLite development setup
+- **`--profile postgres`**: PostgreSQL production setup
+- **`--profile tools`**: Database population utilities
 
 #### Option 1: Docker with SQLite (Development - No Email Verification)
 
@@ -27,9 +32,6 @@ cd Democrasite
 
 # Build and start with docker-compose (uses SQLite, no email verification)
 docker-compose up --build
-
-# Or run in background
-docker-compose up -d --build
 
 # Stop the application
 docker-compose down
@@ -45,9 +47,6 @@ docker-compose down
 ```bash
 # Start PostgreSQL and the application (will be available on port 8001)
 docker-compose --profile postgres up --build
-
-# Populate with test data (optional)
-docker-compose --profile postgres run --rm populate-db-postgres
 
 # Stop everything
 docker-compose --profile postgres down
@@ -72,7 +71,7 @@ cp .env.example .env
 docker-compose --profile postgres --env-file .env up
 ```
 
-#### Option 3: Local Development Only
+### Local Development Only
 
 ```bash
 # Clone the repository
@@ -95,13 +94,6 @@ The API will be available at:
 - **PostgreSQL (Production)**: `http://localhost:8001`
 
 > **Note**: Both environments can run simultaneously since they use different ports.
-
-### Docker Compose Profiles
-
-We use a single `docker-compose.yml` with profiles for different environments:
-- **Default (no profile)**: SQLite development setup
-- **`--profile postgres`**: PostgreSQL production setup
-- **`--profile tools`**: Database population utilities
 
 ### Test Data Population
 
