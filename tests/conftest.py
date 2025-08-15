@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.database import get_db, Base
-from app.db.models import User, Topic, Vote, TopicAccess
+from app.db.models import User, Topic, Vote
 from app.auth.utils import get_password_hash, create_access_token
 from main import app
 

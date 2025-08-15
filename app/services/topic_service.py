@@ -39,6 +39,25 @@ class TopicService:
             "description": topic.description
         }
 
+    def update_topic_tags(self, db, topic, tags_update, current_user):
+        """Update topic tags (creator only)"""
+        # Validate that only creator can update tags
+        if topic.created_by != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Only topic creator can update the tags"
+            )
+        
+        # Update the tags
+        topic.tags = tags_update.tags
+        db.commit()
+        db.refresh(topic)
+        
+        return {
+            "message": "Topic tags updated successfully",
+            "tags": topic.tags
+        }
+
 
 # Singleton instance
 topic_service = TopicService()

@@ -126,6 +126,27 @@ class TopicDescriptionUpdate(BaseModel):
             raise ValueError('Description must be 2000 characters or less')
         return v
 
+class TopicTagsUpdate(BaseModel):
+    tags: List[str]
+    
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v):
+        if len(v) > 10:
+            raise ValueError('Maximum 10 tags allowed')
+        
+        cleaned_tags = []
+        for tag in v:
+            if not tag or not tag.strip():
+                continue  # Skip empty tags
+            cleaned_tag = tag.strip().upper()
+            if len(cleaned_tag) > 50:
+                raise ValueError('Each tag must be 50 characters or less')
+            if cleaned_tag not in cleaned_tags:  # Avoid duplicates
+                cleaned_tags.append(cleaned_tag)
+        
+        return cleaned_tags
+
 # Topic Discovery & Search Schemas
 class SortOption(str, Enum):
     popular = "popular"      # Most votes total

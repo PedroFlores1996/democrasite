@@ -212,15 +212,6 @@ class TopicsManager {
             authorInitials.textContent = this.currentTopic.created_by.charAt(0).toUpperCase();
         }
 
-        // Render tags
-        const tagsContainer = document.getElementById('topicTags');
-        if (this.currentTopic.tags && this.currentTopic.tags.length > 0) {
-            tagsContainer.innerHTML = this.currentTopic.tags
-                .map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`)
-                .join('');
-        } else {
-            tagsContainer.innerHTML = '';
-        }
 
         // Show/hide delete button based on creator status
         this.updateDeleteButton();
@@ -233,6 +224,10 @@ class TopicsManager {
 
         // Show/hide description edit button for creators
         this.updateDescriptionEditButton();
+
+        // Show/hide tags edit button for creators and render tags
+        this.setupTagEditingVisibility();
+        this.renderTopicTags(this.currentTopic.tags);
 
         this.renderVotingSection();
     }
@@ -869,6 +864,122 @@ class TopicsManager {
         }
     }
 
+    // Tag editing methods
+    setupTagEditingVisibility() {
+        const editBtn = document.getElementById('editTagsBtn');
+        if (!editBtn || !this.currentTopic) return;
+
+        // Show edit button only if current user is the creator
+        const currentUser = authManager.currentUser;
+        const isCreator = currentUser && currentUser.username === this.currentTopic.created_by;
+
+        if (isCreator) {
+            editBtn.classList.remove('hidden');
+        } else {
+            editBtn.classList.add('hidden');
+        }
+    }
+
+    showTagsEditForm() {
+        const tagsDisplay = document.getElementById('topicTagsDisplay');
+        const editBtn = document.getElementById('editTagsBtn');
+        const editForm = document.getElementById('tagsEditForm');
+        const editInput = document.getElementById('tagsEditInput');
+
+        if (!tagsDisplay || !editBtn || !editForm || !editInput) return;
+
+        // Hide tags display and edit button
+        tagsDisplay.parentElement.classList.add('hidden');
+
+        // Set current tags in input (comma-separated)
+        const currentTags = this.currentTopic?.tags || [];
+        editInput.value = currentTags.join(', ');
+
+        // Show edit form and focus input
+        editForm.classList.remove('hidden');
+        editInput.focus();
+    }
+
+    hideTagsEditForm() {
+        const tagsDisplay = document.getElementById('topicTagsDisplay');
+        const editBtn = document.getElementById('editTagsBtn');
+        const editForm = document.getElementById('tagsEditForm');
+        const editInput = document.getElementById('tagsEditInput');
+
+        if (!tagsDisplay || !editBtn || !editForm || !editInput) return;
+
+        // Show tags display
+        tagsDisplay.parentElement.classList.remove('hidden');
+
+        // Show edit button if creator
+        const currentUser = authManager.currentUser;
+        const isCreator = currentUser && currentUser.username === this.currentTopic.created_by;
+        if (isCreator) {
+            editBtn.classList.remove('hidden');
+        }
+
+        // Hide edit form and clear input
+        editForm.classList.add('hidden');
+        editInput.value = '';
+    }
+
+    async saveTags() {
+        const editInput = document.getElementById('tagsEditInput');
+        const saveBtn = document.getElementById('saveTagsBtn');
+
+        if (!editInput || !saveBtn || !this.currentTopic) return;
+
+        const newTagsValue = editInput.value.trim();
+        
+        // Parse tags from comma-separated string
+        const newTags = newTagsValue
+            .split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag.length > 0);
+
+        try {
+            // Disable save button and show loading
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            const data = await api.updateTopicTags(this.currentTopic.share_code, newTags);
+
+            // Update current topic data
+            this.currentTopic.tags = data.tags;
+
+            // Update the tags display on the page
+            this.renderTopicTags(data.tags);
+
+            // Hide the edit form
+            this.hideTagsEditForm();
+
+            // Show success message
+            showToast('Tags updated successfully!', 'success');
+
+        } catch (error) {
+            console.error('Error updating tags:', error);
+            showToast(error.message || 'Error updating tags', 'error');
+        } finally {
+            // Re-enable save button
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-check"></i> Save';
+        }
+    }
+
+    renderTopicTags(tags) {
+        const tagsContainer = document.getElementById('topicTagsDisplay');
+        if (!tagsContainer) return;
+
+        if (!tags || tags.length === 0) {
+            tagsContainer.innerHTML = '<span class="no-tags">No tags</span>';
+            return;
+        }
+
+        tagsContainer.innerHTML = tags
+            .map(tag => `<span class="topic-tag-full">${this.escapeHtml(tag)}</span>`)
+            .join('');
+    }
+
     // Utility methods
     escapeHtml(text) {
         const div = document.createElement('div');
@@ -1108,6 +1219,63 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') {
             e.preventDefault();
             topicsManager.hideDescriptionEditForm();
+        }
+    });
+
+    // Tag editing event listeners
+    document.getElementById('editTagsBtn').addEventListener('click', () => {
+        topicsManager.showTagsEditForm();
+    });
+
+    document.getElementById('saveTagsBtn').addEventListener('click', async () => {
+        await topicsManager.saveTags();
+    });
+
+    document.getElementById('cancelTagsBtn').addEventListener('click', () => {
+        topicsManager.hideTagsEditForm();
+    });
+
+    // Allow saving tags with Ctrl+Enter
+    document.getElementById('tagsEditInput').addEventListener('keydown', async (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            await topicsManager.saveTags();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            topicsManager.hideTagsEditForm();
+        }
+    });
+
+    // Add real-time validation for tag input
+    document.getElementById('tagsEditInput').addEventListener('input', (e) => {
+        const input = e.target;
+        const helpText = input.parentElement.querySelector('.tags-help');
+        
+        if (!helpText) return;
+        
+        const tags = input.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+        let errorMessage = '';
+        
+        // Check number of tags
+        if (tags.length > 10) {
+            errorMessage = 'Maximum 10 tags allowed. ';
+        }
+        
+        // Check individual tag length
+        const longTags = tags.filter(tag => tag.length > 50);
+        if (longTags.length > 0) {
+            errorMessage += `Tags must be 50 characters or less. `;
+        }
+        
+        if (errorMessage) {
+            helpText.textContent = errorMessage.trim();
+            helpText.style.color = '#ef4444'; // Red color for errors
+            input.style.borderColor = '#ef4444';
+        } else {
+            helpText.textContent = 'Separate tags with commas. Max 10 tags, 50 characters each.';
+            helpText.style.color = ''; // Reset to default color
+            input.style.borderColor = '';
         }
     });
 });

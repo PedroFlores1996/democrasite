@@ -248,7 +248,6 @@
                     <div class="topic-meta">
                         <div class="topic-badges">
                             <span class="badge badge-primary" id="topicVisibility">Public</span>
-                            <div id="topicTags" class="topic-tags"></div>
                         </div>
                         <div class="topic-author-info">
                             <div class="author-avatar">
@@ -278,6 +277,32 @@
                                     Save
                                 </button>
                                 <button id="cancelDescriptionBtn" class="btn btn-ghost btn-sm">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="topic-tags-container">
+                        <div class="topic-tags-display">
+                            <span class="tags-label">Tags:</span>
+                            <div id="topicTagsDisplay" class="topic-tags-list"></div>
+                            <button id="editTagsBtn" class="btn btn-ghost btn-sm edit-tags-btn hidden" title="Edit tags">
+                                <i class="fas fa-edit"></i>
+                                Edit
+                            </button>
+                        </div>
+                        <div id="tagsEditForm" class="tags-edit-form hidden">
+                            <div class="input-wrapper">
+                                <input type="text" id="tagsEditInput" class="tags-edit-input" placeholder="Enter tags separated by commas..." maxlength="500">
+                                <small class="tags-help">Separate tags with commas. Max 10 tags, 50 characters each.</small>
+                            </div>
+                            <div class="tags-edit-actions">
+                                <button id="saveTagsBtn" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-check"></i>
+                                    Save
+                                </button>
+                                <button id="cancelTagsBtn" class="btn btn-ghost btn-sm">
                                     Cancel
                                 </button>
                             </div>

@@ -172,6 +172,10 @@ class API {
         return this.patch(`/api/topics/${shareCode}/description`, { description });
     }
 
+    async updateTopicTags(shareCode, tags) {
+        return this.patch(`/api/topics/${shareCode}/tags`, { tags });
+    }
+
     async vote(shareCode, choices) {
         // Handle both single choice (string) and multiple choices (array)
         const choicesArray = Array.isArray(choices) ? choices : [choices];

@@ -10,6 +10,7 @@ from app.schemas import (
     TopicsSearchResponse,
     SortOption,
     TopicDescriptionUpdate,
+    TopicTagsUpdate,
 )
 from app.auth.utils import get_current_user
 from app.db.database import get_db
@@ -137,6 +138,18 @@ def update_topic_description(
     """Update topic description (creator only)"""
     topic = topic_service.find_topic_by_share_code(share_code, db)
     return topic_service.update_topic_description(db, topic, description_update, current_user)
+
+
+@router.patch("/topics/{share_code}/tags")
+def update_topic_tags(
+    share_code: str,
+    tags_update: TopicTagsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update topic tags (creator only)"""
+    topic = topic_service.find_topic_by_share_code(share_code, db)
+    return topic_service.update_topic_tags(db, topic, tags_update, current_user)
 
 
 @router.delete("/topics/{share_code}")
