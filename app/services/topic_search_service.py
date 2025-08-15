@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, asc, or_
+from sqlalchemy import func, or_
 
 from app.db.models import Topic, User
 from app.schemas import SortOption, TopicSummary, TopicsSearchResponse
@@ -57,7 +57,7 @@ class TopicSearchService:
         )
     
     def _get_public_topics(self, db: Session, title: Optional[str], tags: Optional[str], sort: SortOption) -> List[Topic]:
-        """Get public topics with filters and sorting - fast indexed query"""
+        """Get public topics with filters only - sorting applied later for consistency"""
         query = db.query(Topic).filter(Topic.is_public == True)
         
         # Add title/share code search filter
@@ -77,9 +77,7 @@ class TopicSearchService:
         if tags:
             query = self._add_tags_filter(query, tags)
         
-        # Add sorting
-        query = self._add_sorting(db, query, sort)
-        
+        # No sorting here - will be applied consistently to combined results
         return query.all()
     
     def _get_user_accessible_topics(self, current_user: User, title: Optional[str], tags: Optional[str]) -> List[Topic]:
@@ -171,19 +169,6 @@ class TopicSearchService:
         
         return query.filter(or_(*tag_conditions))
     
-    def _add_sorting(self, db: Session, query, sort: SortOption):
-        """Add sorting to the query"""
-        if sort == SortOption.recent:
-            return query.order_by(desc(Topic.created_at))
-        elif sort == SortOption.favorites:
-            # Sort by favorite count
-            return query.order_by(desc(Topic.favorite_count))
-        elif sort == SortOption.alphabetical:
-            # Sort by title A-Z
-            return query.order_by(asc(Topic.title))
-        else:  # popular or votes
-            # Use denormalized vote_count for sorting
-            return query.order_by(desc(Topic.vote_count))
     
     def _paginate_query(self, query, page: int, limit: int):
         """Apply pagination to the query"""
