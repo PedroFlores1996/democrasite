@@ -50,6 +50,7 @@ class TopicCreationService:
         """
         db_topic = Topic(
             title=topic_data.title,
+            description=topic_data.description,
             created_by=current_user.id,
             answers=topic_data.answers,
             is_public=topic_data.is_public,
