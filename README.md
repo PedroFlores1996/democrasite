@@ -5,10 +5,12 @@ A FastAPI-based democratic voting platform that allows users to create topics wi
 ## Features
 
 - **Custom Topics**: Create topics with 1-1000 custom answers (not just Yes/No)
-- **Access Control**: Public topics or private topics with user permissions
-- **User Management**: Topic creators can manage access lists for private topics
-- **Share Codes**: Secure 8-character codes instead of exposed database IDs
-- **JWT Authentication**: Secure user registration and login
+- **Multi-Select Support**: Topics can allow single or multiple choice voting
+- **Collaborative Topics**: Allow users to add new voting options to topics
+- **Access Control**: Public topics (discoverable) or private topics (unlisted via share codes)
+- **Share Codes**: Secure 8-character codes for topic access and sharing
+- **Topic Management**: Edit descriptions, delete topics, and remove user access
+- **JWT Authentication**: Secure user registration and login with optional email verification
 - **RESTful API**: Clean REST endpoints for all operations
 - **Comprehensive Testing**: Full test suite with VS Code integration
 
@@ -175,68 +177,162 @@ Once running, visit:
 - **Interactive docs**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
+All API endpoints are prefixed with `/api` (e.g., `/api/topics`, `/api/register`).
+
 ## API Endpoints
 
 ### Authentication
-- `POST /register` - Register new user (auto-login)
-- `POST /login` - Login existing user
+- `POST /api/register` - Register new user
+- `POST /api/token` - Login existing user (OAuth2 form data)
+- `GET /api/users/me` - Get current user profile
+- `GET /api/users/me/stats` - Get user statistics
+- `DELETE /api/users/me` - Delete user account
 
 ### Topics
-- `POST /topics` - Create a new topic (public or private)
-- `GET /topics/{share_code}` - Get topic details and vote results
+- `POST /api/topics` - Create a new topic (public or private)
+- `GET /api/topics` - Search and list topics (authenticated users only)
+- `GET /api/topics/{share_code}` - Get topic details and vote results
+- `PATCH /api/topics/{share_code}/description` - Update topic description (creator only)
+- `DELETE /api/topics/{share_code}` - Delete topic and all related data (creator only)
 
 ### Voting
-- `POST /topics/{share_code}/votes` - Vote on a topic
+- `POST /api/topics/{share_code}/votes` - Submit vote(s) on a topic (supports single and multi-select)
 
-### User Management (Private Topics)
-- `GET /topics/{share_code}/users` - View topic access list and votes (creator only)
-- `POST /topics/{share_code}/users` - Add users to private topic access list (creator only)
-- `DELETE /topics/{share_code}/users` - Remove users from access list and their votes (creator only)
+### Topic Options (Collaborative Topics)
+- `POST /api/topics/{share_code}/options` - Add new voting option to editable topic
+
+### User Access Management
+- `DELETE /api/topics/{share_code}/users/{username}` - Remove user from private topic (self-removal or creator removing others)
+
+### Favorites
+- `GET /api/favorites` - Get user's favorite topics
+- `POST /api/favorites/{share_code}` - Add topic to favorites
+- `DELETE /api/favorites/{share_code}` - Remove topic from favorites
 
 ## Usage Examples
 
-### Creating a Public Topic
+### Authentication
+```bash
+# Register a new user
+curl -X POST "http://localhost:8000/api/register" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "alice", "email": "alice@example.com", "password": "password123"}'
+
+# Login (returns JWT token)
+curl -X POST "http://localhost:8000/api/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=alice&password=password123"
+```
+
+### Creating Topics
+
+#### Public Topic with Multi-Select
 ```json
-POST /topics
+POST /api/topics
+Authorization: Bearer <jwt_token>
 {
-  "title": "What's your favorite programming language?",
-  "answers": ["Python", "JavaScript", "Rust", "Go"],
-  "is_public": true
+  "title": "What programming languages do you use regularly?",
+  "description": "Select all that apply - we want to understand our team's tech stack",
+  "answers": ["Python", "JavaScript", "Rust", "Go", "Java"],
+  "is_public": true,
+  "is_editable": false,
+  "allow_multi_select": true,
+  "tags": ["programming", "technology", "survey"]
 }
 ```
 
-### Creating a Private Topic
+#### Private Collaborative Topic
 ```json
-POST /topics
+POST /api/topics
+Authorization: Bearer <jwt_token>
 {
-  "title": "Team Pizza Preference",
-  "answers": ["Margherita", "Pepperoni", "Hawaiian"],
+  "title": "Team Lunch Options",
+  "description": "Suggest and vote on lunch spots for our team outing",
+  "answers": ["Pizza Place", "Sushi Restaurant"],
   "is_public": false,
-  "allowed_users": ["alice", "bob", "charlie"]
+  "is_editable": true,
+  "allow_multi_select": false,
+  "tags": ["team", "food"]
 }
 ```
 
 ### Voting
+
+#### Single Choice Vote
 ```json
-POST /topics/ABC123XY/votes
+POST /api/topics/ABC123XY/votes
+Authorization: Bearer <jwt_token>
 {
-  "choice": "Python"
+  "choices": ["Python"]
 }
 ```
 
-### Managing Users (Private Topics)
+#### Multi-Select Vote
 ```json
-POST /topics/ABC123XY/users
+POST /api/topics/ABC123XY/votes
+Authorization: Bearer <jwt_token>
 {
-  "usernames": ["dave", "eve"]
+  "choices": ["Python", "JavaScript", "Go"]
 }
 ```
 
+### Topic Management
+
+#### Add Option to Collaborative Topic
 ```json
-DELETE /topics/ABC123XY/users
+POST /api/topics/ABC123XY/options
+Authorization: Bearer <jwt_token>
 {
-  "usernames": ["alice"]
+  "option": "Thai Restaurant"
 }
+```
+
+#### Update Topic Description
+```json
+PATCH /api/topics/ABC123XY/description
+Authorization: Bearer <jwt_token>
+{
+  "description": "Updated description with more context"
+}
+```
+
+#### Remove User from Private Topic
+```bash
+# Creator removing another user
+DELETE /api/topics/ABC123XY/users/bob
+Authorization: Bearer <jwt_token>
+
+# User removing themselves  
+DELETE /api/topics/ABC123XY/users/alice
+Authorization: Bearer <jwt_token>
+```
+
+### Search and Discovery
+
+#### Search Topics
+```bash
+# Search by title and tags
+GET /api/topics?title=programming&tags=technology&sort=popular&page=1&limit=20
+Authorization: Bearer <jwt_token>
+
+# Get all topics
+GET /api/topics
+Authorization: Bearer <jwt_token>
+```
+
+### Favorites Management
+```bash
+# Add to favorites
+POST /api/favorites/ABC123XY
+Authorization: Bearer <jwt_token>
+
+# Remove from favorites
+DELETE /api/favorites/ABC123XY
+Authorization: Bearer <jwt_token>
+
+# Get user's favorites
+GET /api/favorites
+Authorization: Bearer <jwt_token>
 ```
 
 ## Development
@@ -253,12 +349,14 @@ python3 -m pytest tests/test_topics.py::test_create_topic_success -v
 ```
 
 ### Key Features Tested:
-- Topic creation (public/private with validation)
-- Voting system with choice validation  
+- Topic creation (public/private with multi-select and collaborative options)
+- Voting system with single and multi-choice validation
 - User authentication and authorization
-- Access control for private topics
-- User management operations
+- Automatic access granting via share codes for private topics
+- Topic management (description updates, deletion, user removal)
 - Data integrity and cascade operations
+- Search and filtering functionality
+- Favorites system
 
 ### Database
 - **Development**: SQLite (`democrasite.db`) - file-based, simple setup
@@ -292,12 +390,42 @@ docker-compose --profile postgres down --volumes
 
 ## Architecture
 
-- **FastAPI** - Web framework
+### Technology Stack
+- **FastAPI** - Modern, fast web framework with automatic API documentation
 - **SQLAlchemy** - ORM with multi-database support (SQLite + PostgreSQL)
-- **JWT** - Authentication with bcrypt password hashing
-- **Pydantic** - Data validation and serialization
-- **pytest** - Testing framework
+- **JWT** - Stateless authentication with bcrypt password hashing
+- **Pydantic** - Data validation and serialization with type hints
+- **pytest** - Comprehensive testing framework with VS Code integration
 - **Docker** - Containerization with profile-based environments
+
+### Access Control Design
+
+The platform uses a **simplified access control model** that recognizes the reality of how private topics work:
+
+#### Public Topics
+- **Discoverable**: Appear in search results and topic lists
+- **Open Access**: Anyone can view and vote
+- **Indexed**: Optimized for fast search and filtering
+
+#### Private Topics (Unlisted)
+- **Share Code Access**: Accessible only via direct share code URL
+- **Automatic Access Granting**: Users gain access by visiting the share code URL
+- **Persistent Access**: Once accessed, users can vote and revisit
+- **Creator Controls**: Only creators can remove users or delete topics
+
+#### Key Architectural Benefits
+- **Honest UX**: No false promises about access control—share codes provide permanent access
+- **Performance**: Split query approach separates public search (O(log n)) from private relationships
+- **Simplicity**: Standard SQLAlchemy relationship patterns instead of complex access entities
+- **Maintainability**: 346+ fewer lines of redundant user management code
+
+#### User Removal
+- **Creator Rights**: Topic creators can remove any user from private topics
+- **Self-Removal**: Users can remove themselves from any private topic
+- **Vote Cleanup**: Removing users also deletes their votes
+- **Re-Access**: Removed users can regain access via the share code URL
+
+This design acknowledges that "private" topics are effectively "unlisted" rather than truly secure, providing a cleaner and more honest user experience.
 
 ## License
 
