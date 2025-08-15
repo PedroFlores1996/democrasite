@@ -519,9 +519,10 @@ class TopicsManager {
     }
 
     // Apply filter to topics
-    applyFilter(filter) {
+    async applyFilter(filter) {
         this.currentFilter = filter;
-        this.renderTopics();
+        // Reload topics to ensure we have fresh data, then apply filter
+        await this.loadTopics(this.searchQuery);
     }
 
     // Apply sort to topics
