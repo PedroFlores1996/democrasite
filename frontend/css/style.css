@@ -977,10 +977,10 @@ body {
 }
 
 .topic-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    margin: 0;
 }
 
 .topic-author {
@@ -1145,12 +1145,17 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-lg);
     padding: 32px;
+    position: relative;
 }
 
 .topic-badges {
     display: flex;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 0;
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 1;
 }
 
 .badge {
@@ -1201,7 +1206,8 @@ body {
     font-size: 26px;
     font-weight: 800;
     color: var(--text-primary);
-    margin-bottom: 16px;
+    margin-bottom: 24px;
+    margin-top: 40px;
     line-height: 1.2;
 }
 
