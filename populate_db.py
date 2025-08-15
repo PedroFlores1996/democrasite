@@ -11,7 +11,7 @@ Usage: python3 populate_db.py
 import os
 import sys
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 # Add the project root to the Python path
@@ -242,7 +242,7 @@ def create_users(db, users_data):
             username=user_data["username"],
             email=user_data["email"],
             hashed_password=get_password_hash(user_data["password"]),
-            created_at=datetime.utcnow() - timedelta(days=random.randint(1, 90))
+            created_at=datetime.now(timezone.utc) - timedelta(days=random.randint(1, 90))
         )
         db.add(user)
         users.append(user)
@@ -273,18 +273,16 @@ def create_topics(db, users, topics_data):
             is_editable=topic_data["is_editable"],
             allow_multi_select=topic_data.get("allow_multi_select", False),
             created_by=creator.id,
-            created_at=datetime.utcnow() - timedelta(days=random.randint(1, 30), hours=random.randint(0, 23)),
+            created_at=datetime.now(timezone.utc) - timedelta(days=random.randint(1, 30), hours=random.randint(0, 23)),
             share_code=topic_service.generate_share_code()  # Generate proper 8-char share code
         )
         
         db.add(topic)
         db.flush()  # Get the topic ID
         
-        # Add creator to private topics access
+        # Add creator to private topics access using the relationship
         if not topic.is_public:
-            from app.db.models import TopicAccess
-            access = TopicAccess(user_id=creator.id, topic_id=topic.id)
-            db.add(access)
+            topic.accessible_users.append(creator)
         
         topics.append(topic)
     
