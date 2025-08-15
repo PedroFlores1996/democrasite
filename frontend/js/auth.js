@@ -109,8 +109,7 @@ class AuthManager {
             // Update command center for authenticated users
             this.updateCommandCenterForAuth();
 
-            // Load real stats for authenticated users
-            this.loadDashboardStats();
+            // Dashboard stats will be loaded after topics are loaded
         } else {
             loginBtn.classList.remove('hidden');
             registerBtn.classList.remove('hidden');
@@ -184,8 +183,11 @@ class AuthManager {
 
     async loadDashboardStats() {
         try {
-            // Get topics to calculate stats
-            const topicsData = await api.getTopics('', '', 'popular', 100, 1); // Get topics for stats (max 100)
+            // Use existing topics data from TopicsManager instead of making another API call
+            const topics = topicsManager.topics || [];
+            const totalTopics = topics.length;
+            const totalVotes = topics.reduce((sum, topic) => sum + (topic.total_votes || 0), 0);
+            const uniqueCreators = new Set(topics.map(topic => topic.creator_username)).size;
 
             // Update stats cards
             const activeTopicsEl = document.querySelector('[data-count="0"]');
@@ -193,20 +195,8 @@ class AuthManager {
             const participantsEl = document.querySelectorAll('[data-count="0"]')[2];
 
             if (activeTopicsEl) {
-                activeTopicsEl.setAttribute('data-count', topicsData.total || 0);
-                activeTopicsEl.textContent = topicsData.total || 0;
-            }
-
-            // Calculate total votes from all topics
-            let totalVotes = 0;
-            let totalParticipants = new Set();
-
-            if (topicsData.topics) {
-                topicsData.topics.forEach(topic => {
-                    totalVotes += topic.total_votes || 0;
-                    // Add creator as participant
-                    totalParticipants.add(topic.creator_username);
-                });
+                activeTopicsEl.setAttribute('data-count', totalTopics);
+                activeTopicsEl.textContent = totalTopics;
             }
 
             if (votesCastEl) {
@@ -215,8 +205,8 @@ class AuthManager {
             }
 
             if (participantsEl) {
-                participantsEl.setAttribute('data-count', totalParticipants.size);
-                participantsEl.textContent = totalParticipants.size;
+                participantsEl.setAttribute('data-count', uniqueCreators);
+                participantsEl.textContent = uniqueCreators;
             }
 
         } catch (error) {

@@ -141,8 +141,7 @@ class UIManager {
                 // Small delay to let the UI settle
                 setTimeout(() => {
                     topicsManager.loadTopics(topicsManager.searchQuery);
-                    // Also refresh dashboard stats to show updated counts
-                    authManager.loadDashboardStats();
+                    // Dashboard stats will be updated automatically after topics load
                 }, 100);
             }
         }

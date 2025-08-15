@@ -11,6 +11,7 @@ class TopicsManager {
         this.cachedTopics = null;
         this.cacheTimestamp = null;
         this.cacheValidityMs = 30000; // 30 seconds cache
+        this.isLoading = false; // Prevent concurrent requests
     }
 
     isCacheValid() {
@@ -67,6 +68,11 @@ class TopicsManager {
                 return;
             }
 
+            // Prevent concurrent requests - if already loading, wait for it to complete
+            if (this.isLoading && !forceRefresh) {
+                return;
+            }
+
             // Use cache if valid and no search/sort changes and not forcing refresh
             if (!forceRefresh && 
                 this.isCacheValid() && 
@@ -75,8 +81,16 @@ class TopicsManager {
                 this.topics = this.cachedTopics;
                 this.updateFavoritesFromTopics();
                 this.renderTopics();
+                
+                // Update dashboard stats from cached data
+                if (typeof authManager !== 'undefined' && authManager.loadDashboardStats) {
+                    authManager.loadDashboardStats();
+                }
                 return;
             }
+
+            // Set loading state
+            this.isLoading = true;
 
             this.searchQuery = search;
             const response = await api.getTopics(search, '', this.currentSort, 100);
@@ -91,6 +105,11 @@ class TopicsManager {
             this.updateFavoritesFromTopics();
 
             this.renderTopics();
+            
+            // Update dashboard stats after loading topics (if not from cache)
+            if (typeof authManager !== 'undefined' && authManager.loadDashboardStats) {
+                authManager.loadDashboardStats();
+            }
         } catch (error) {
             console.error('Error loading topics:', error);
             console.error('Auth status:', authManager.isAuthenticated);
@@ -111,6 +130,9 @@ class TopicsManager {
                 this.topics = [];
                 this.renderTopics();
             }
+        } finally {
+            // Always clear loading state
+            this.isLoading = false;
         }
     }
 
