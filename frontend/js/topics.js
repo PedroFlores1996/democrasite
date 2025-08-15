@@ -8,13 +8,73 @@ class TopicsManager {
         this.currentFilter = 'all';
         this.currentSort = 'popular';
         this.favorites = new Set(); // Track favorite topic share codes
+        this.cachedTopics = null;
+        this.cacheTimestamp = null;
+        this.cacheValidityMs = 30000; // 30 seconds cache
     }
 
-    async loadTopics(search = '', showErrors = true) {
+    isCacheValid() {
+        return this.cachedTopics && 
+               this.cacheTimestamp && 
+               (Date.now() - this.cacheTimestamp) < this.cacheValidityMs;
+    }
+
+    updateFavoritesFromTopics() {
+        // Update favorites set from topic data instead of separate API call
+        this.favorites.clear();
+        this.topics.forEach(topic => {
+            if (topic.is_favorited) {
+                this.favorites.add(topic.share_code);
+            }
+        });
+    }
+
+    updateTopicFavoriteStatus(shareCode, isFavorited) {
+        // Update is_favorited for a specific topic in both current topics and cache
+        const updateTopic = (topicList) => {
+            const topic = topicList.find(t => t.share_code === shareCode);
+            if (topic) {
+                topic.is_favorited = isFavorited;
+                if (isFavorited) {
+                    topic.favorite_count = (topic.favorite_count || 0) + 1;
+                } else if (topic.favorite_count > 0) {
+                    topic.favorite_count -= 1;
+                }
+            }
+        };
+
+        updateTopic(this.topics);
+        if (this.cachedTopics) {
+            updateTopic(this.cachedTopics);
+        }
+    }
+
+    updateCacheAfterFavoriteChange(shareCode, isFavorited) {
+        // Update cached topics when favorite status changes
+        if (this.cachedTopics) {
+            const cachedTopic = this.cachedTopics.find(t => t.share_code === shareCode);
+            if (cachedTopic) {
+                cachedTopic.is_favorited = isFavorited;
+            }
+        }
+    }
+
+    async loadTopics(search = '', showErrors = true, forceRefresh = false) {
         try {
             // Check if user is authenticated first
             if (!authManager.isAuthenticated) {
                 this.renderUnauthenticatedState();
+                return;
+            }
+
+            // Use cache if valid and no search/sort changes and not forcing refresh
+            if (!forceRefresh && 
+                this.isCacheValid() && 
+                search === this.searchQuery && 
+                this.cachedTopics) {
+                this.topics = this.cachedTopics;
+                this.updateFavoritesFromTopics();
+                this.renderTopics();
                 return;
             }
 
@@ -23,8 +83,12 @@ class TopicsManager {
             // Extract topics array from the paginated response
             this.topics = Array.isArray(response) ? response : (response.topics || []);
 
-            // Load favorites in parallel
-            await this.loadFavorites();
+            // Cache the results
+            this.cachedTopics = [...this.topics];
+            this.cacheTimestamp = Date.now();
+
+            // Update favorites set from topic data (no separate API call needed)
+            this.updateFavoritesFromTopics();
 
             this.renderTopics();
         } catch (error) {
@@ -405,7 +469,7 @@ class TopicsManager {
             hideModal('createTopicModal');
 
             // Refresh topics list
-            await this.loadTopics();
+            await this.loadTopics('', true, true); // Force refresh after creating topic
 
             return newTopic;
         } catch (error) {
@@ -524,7 +588,10 @@ class TopicsManager {
     // Apply sort to topics
     async applySort(sort) {
         this.currentSort = sort;
-        await this.loadTopics(this.searchQuery);
+        // Invalidate cache when sort changes
+        this.cachedTopics = null;
+        this.cacheTimestamp = null;
+        await this.loadTopics(this.searchQuery, true, true); // Force refresh when sort changes
     }
 
     // Get filtered topics based on current filter
@@ -584,7 +651,7 @@ class TopicsManager {
 
             // Navigate back to dashboard
             showSection('topicsDashboard');
-            await this.loadTopics();
+            await this.loadTopics('', true, true); // Force refresh after deleting topic
 
         } catch (error) {
             console.error('Error deleting topic:', error);
@@ -611,14 +678,15 @@ class TopicsManager {
 
             const isFavorited = this.favorites.has(shareCode);
 
-
             if (isFavorited) {
                 await api.removeFromFavorites(shareCode);
                 this.favorites.delete(shareCode);
+                this.updateTopicFavoriteStatus(shareCode, false);
                 showToast('Removed from favorites', 'success');
             } else {
                 await api.addToFavorites(shareCode);
                 this.favorites.add(shareCode);
+                this.updateTopicFavoriteStatus(shareCode, true);
                 showToast('Added to favorites', 'success');
             }
 
@@ -644,20 +712,24 @@ class TopicsManager {
                 await api.removeFromFavorites(shareCode);
                 this.favorites.delete(shareCode);
                 
-                // Optimistically decrease the counter
+                // Optimistically decrease the counter and update is_favorited
                 if (topic && topic.favorite_count > 0) {
                     topic.favorite_count -= 1;
+                    topic.is_favorited = false;
                 }
+                this.updateCacheAfterFavoriteChange(shareCode, false);
                 
                 showToast('Removed from favorites', 'success');
             } else {
                 await api.addToFavorites(shareCode);
                 this.favorites.add(shareCode);
                 
-                // Optimistically increase the counter
+                // Optimistically increase the counter and update is_favorited
                 if (topic) {
                     topic.favorite_count = (topic.favorite_count || 0) + 1;
+                    topic.is_favorited = true;
                 }
+                this.updateCacheAfterFavoriteChange(shareCode, true);
                 
                 showToast('Added to favorites! ⭐', 'success');
             }
@@ -727,7 +799,7 @@ class TopicsManager {
 
             // Navigate back to dashboard
             showSection('topicsDashboard');
-            await this.loadTopics();
+            await this.loadTopics('', true, true); // Force refresh after leaving topic
 
         } catch (error) {
             console.error('Error leaving topic:', error);
@@ -1070,6 +1142,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Back button
     document.getElementById('backBtn').addEventListener('click', () => {
         showSection('topicsDashboard');
+        // Use cached data when returning to dashboard, don't fetch again
+        topicsManager.loadTopics('', true, false); // search='', showErrors=true, forceRefresh=false
     });
 
     // Create topic form

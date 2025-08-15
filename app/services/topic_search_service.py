@@ -41,7 +41,7 @@ class TopicSearchService:
         paginated_topics = self._paginate_topic_list(sorted_topics, page, limit)
         
         # Build response objects
-        topic_summaries = self._build_topic_summaries(db, paginated_topics)
+        topic_summaries = self._build_topic_summaries(db, paginated_topics, current_user)
         
         # Calculate pagination info
         has_next = (page * limit) < total
@@ -175,9 +175,12 @@ class TopicSearchService:
         offset = (page - 1) * limit
         return query.offset(offset).limit(limit).all()
     
-    def _build_topic_summaries(self, db: Session, topics: List[Topic]) -> List[TopicSummary]:
+    def _build_topic_summaries(self, db: Session, topics: List[Topic], current_user: User) -> List[TopicSummary]:
         """Build TopicSummary objects from Topic models"""
         topic_summaries = []
+        
+        # Get user's favorited topic IDs for efficient lookup
+        favorited_topic_ids = {t.id for t in current_user.favorite_topics}
         
         for topic in topics:
             topic_summaries.append(
@@ -192,7 +195,8 @@ class TopicSearchService:
                     favorite_count=topic.favorite_count or 0,  # Use denormalized count
                     tags=topic.tags or [],
                     creator_username=topic.creator.username,
-                    is_public=topic.is_public
+                    is_public=topic.is_public,
+                    is_favorited=topic.id in favorited_topic_ids
                 )
             )
         

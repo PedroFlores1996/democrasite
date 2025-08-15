@@ -127,8 +127,8 @@ class App {
         // Refresh topics list every 60 seconds when on dashboard
         setInterval(() => {
             if (uiManager.currentSection === 'topicsDashboard' && authManager.isAuthenticated) {
-                // Silently refresh topics
-                topicsManager.loadTopics(topicsManager.searchQuery);
+                // Silently refresh topics with force refresh to get latest data
+                topicsManager.loadTopics(topicsManager.searchQuery, false, true);
             }
         }, 60000);
     }

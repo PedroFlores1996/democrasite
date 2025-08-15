@@ -168,6 +168,7 @@ class TopicSummary(BaseModel):
     tags: List[str] = []
     creator_username: str
     is_public: bool
+    is_favorited: bool = False
     
     class Config:
         from_attributes = True
