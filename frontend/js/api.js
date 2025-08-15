@@ -167,9 +167,6 @@ class API {
         return this.delete(`/api/topics/${shareCode}`);
     }
 
-    async leaveTopic(shareCode) {
-        return this.post(`/api/topics/${shareCode}/leave`);
-    }
 
     async updateTopicDescription(shareCode, description) {
         return this.patch(`/api/topics/${shareCode}/description`, { description });
@@ -181,29 +178,10 @@ class API {
         return this.post(`/api/topics/${shareCode}/votes`, { choices: choicesArray });
     }
 
-    async getTopicUsers(shareCode) {
-        return this.get(`/api/topics/${shareCode}/users`);
-    }
-
-    async addTopicUsers(shareCode, usernames) {
-        return this.post(`/api/topics/${shareCode}/users`, { usernames });
-    }
-
-    async removeTopicUsers(shareCode, usernames) {
-        return this.request(`/api/topics/${shareCode}/users`, {
-            method: 'DELETE',
-            body: JSON.stringify({ usernames }),
-        });
-    }
-
     async removeTopicUser(shareCode, username) {
         return this.delete(`/api/topics/${shareCode}/users/${username}`);
     }
 
-    // Share code endpoints
-    async getShareCode(shareCode) {
-        return this.get(`/api/topics/${shareCode}/share-code`);
-    }
 
     // Add option to editable topic
     async addOptionToTopic(shareCode, option) {

@@ -231,9 +231,6 @@ class TopicsManager {
         // Update favorite button state
         this.updateFavoriteButton();
 
-        // Show/hide user management panel for private topics (creator only)
-        this.updateUserManagementPanel();
-
         // Show/hide description edit button for creators
         this.updateDescriptionEditButton();
 
@@ -721,7 +718,14 @@ class TopicsManager {
                 return;
             }
 
-            await api.leaveTopic(shareCode);
+            // Remove current user from the topic
+            const currentUser = authManager.currentUser;
+            if (!currentUser) {
+                showToast('User not found', 'error');
+                return;
+            }
+
+            await api.removeTopicUser(shareCode, currentUser.username);
             showToast('You have left the topic', 'success');
 
             // Navigate back to dashboard
@@ -753,175 +757,9 @@ class TopicsManager {
         }
     }
 
-    updateUserManagementPanel() {
-        const panel = document.getElementById('userManagementPanel');
-        if (!panel || !this.currentTopic) return;
 
-        // Show panel only for private topics where current user is the creator
-        const currentUser = authManager.currentUser;
-        const isCreator = currentUser && currentUser.username === this.currentTopic.created_by;
-        const isPrivate = !this.currentTopic.is_public;
 
-        if (isPrivate && isCreator && authManager.isAuthenticated) {
-            panel.classList.remove('hidden');
-            this.loadTopicUsers();
-        } else {
-            panel.classList.add('hidden');
-        }
-    }
 
-    async loadTopicUsers() {
-        const usersList = document.getElementById('usersList');
-        const loadingState = document.getElementById('usersListLoading');
-        const accessStats = document.getElementById('totalAccessUsers');
-        
-        try {
-            // Show loading state
-            loadingState.classList.remove('hidden');
-            usersList.innerHTML = '';
-
-            const usersData = await api.getTopicUsers(this.currentTopic.share_code);
-            const users = usersData.users || [];
-            
-            // Update stats
-            const userCount = users.length;
-            accessStats.textContent = `${userCount} user${userCount !== 1 ? 's' : ''} have access`;
-            
-            // Render users list
-            if (users.length === 0) {
-                usersList.innerHTML = `
-                    <div class="empty-state" style="text-align: center; padding: 24px; color: var(--text-muted);">
-                        <i class="fas fa-users" style="font-size: 2rem; margin-bottom: 12px; opacity: 0.5;"></i>
-                        <p>No users have access yet</p>
-                        <p style="font-size: 12px; margin-top: 4px;">Add users above to grant access to this private topic</p>
-                    </div>
-                `;
-            } else {
-                usersList.innerHTML = users.map(user => this.renderUserItem(user)).join('');
-            }
-            
-        } catch (error) {
-            console.error('Error loading topic users:', error);
-            usersList.innerHTML = `
-                <div class="error-state" style="text-align: center; padding: 24px; color: var(--error);">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 12px;"></i>
-                    <p>Error loading users</p>
-                    <button class="btn btn-ghost btn-sm" onclick="topicsManager.loadTopicUsers()" style="margin-top: 12px;">
-                        <i class="fas fa-retry"></i>
-                        Retry
-                    </button>
-                </div>
-            `;
-        } finally {
-            loadingState.classList.add('hidden');
-        }
-    }
-
-    renderUserItem(user) {
-        const isCreator = user.username === this.currentTopic.created_by;
-        const voteCount = user.vote_count || 0;
-        const voteText = voteCount === 1 ? 'vote' : 'votes';
-        
-        return `
-            <div class="user-item">
-                <div class="user-info">
-                    <div class="user-avatar">
-                        ${this.escapeHtml(user.username).charAt(0).toUpperCase()}
-                    </div>
-                    <div class="user-details">
-                        <div class="user-name">${this.escapeHtml(user.username)}</div>
-                        <div class="user-stats">${voteCount} ${voteText}</div>
-                    </div>
-                    ${isCreator ? '<span class="creator-badge"><i class="fas fa-crown"></i> Creator</span>' : ''}
-                </div>
-                <div class="user-actions">
-                    ${!isCreator ? `
-                        <button class="btn btn-ghost btn-sm btn-danger" 
-                                onclick="topicsManager.removeUser('${this.escapeHtml(user.username)}')"
-                                title="Remove user">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    }
-
-    async addUser() {
-        const input = document.getElementById('addUserInput');
-        const errorDiv = document.getElementById('addUserError');
-        const addBtn = document.getElementById('addUserBtn');
-        
-        if (!input || !this.currentTopic) return;
-        
-        const username = input.value.trim();
-        if (!username) {
-            this.showUserError('Please enter a username');
-            return;
-        }
-        
-        try {
-            addBtn.disabled = true;
-            addBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-            errorDiv.classList.add('hidden');
-            
-            const response = await api.addTopicUsers(this.currentTopic.share_code, [username]);
-            
-            if (response.added_users && response.added_users.length > 0) {
-                showToast(`Added ${username} to topic`, 'success');
-                input.value = '';
-                await this.loadTopicUsers();
-            } else if (response.already_added_users && response.already_added_users.includes(username)) {
-                this.showUserError(`${username} already has access to this topic`);
-            } else if (response.not_found_users && response.not_found_users.includes(username)) {
-                this.showUserError(`User ${username} not found`);
-            } else {
-                this.showUserError('Failed to add user');
-            }
-            
-        } catch (error) {
-            console.error('Error adding user:', error);
-            this.showUserError(error.message || 'Error adding user');
-        } finally {
-            addBtn.disabled = false;
-            addBtn.innerHTML = '<i class="fas fa-plus"></i> Add';
-        }
-    }
-
-    async removeUser(username) {
-        const confirmed = await confirm(`Remove ${username} from this topic? Their votes will also be deleted.`);
-        if (!confirmed) {
-            return;
-        }
-        
-        try {
-            const response = await api.removeTopicUser(this.currentTopic.share_code, username);
-            
-            const votesRemoved = response.votes_removed || 0;
-            const message = votesRemoved > 0 
-                ? `Removed ${username} and ${votesRemoved} vote${votesRemoved !== 1 ? 's' : ''}`
-                : `Removed ${username} from topic`;
-            showToast(message, 'success');
-            await this.loadTopicUsers();
-            
-            // Reload topic to update vote counts if votes were removed
-            if (votesRemoved > 0) {
-                await this.showTopic(this.currentTopic.share_code);
-            }
-            
-        } catch (error) {
-            console.error('Error removing user:', error);
-            showToast(error.message || 'Error removing user', 'error');
-        }
-    }
-
-    showUserError(message) {
-        const errorDiv = document.getElementById('addUserError');
-        if (errorDiv) {
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('hidden');
-        }
-    }
 
     // Description Editing Functionality
     updateDescriptionEditButton() {
@@ -1246,26 +1084,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await topicsManager.leaveTopic(topicsManager.currentTopic.share_code);
     });
 
-    // User management functionality
-    document.getElementById('addUserBtn').addEventListener('click', async () => {
-        await topicsManager.addUser();
-    });
-
-    // Add user on Enter key
-    document.getElementById('addUserInput').addEventListener('keypress', async (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            await topicsManager.addUser();
-        }
-    });
-
-    // Clear error when user starts typing
-    document.getElementById('addUserInput').addEventListener('input', () => {
-        const errorDiv = document.getElementById('addUserError');
-        if (errorDiv && !errorDiv.classList.contains('hidden')) {
-            errorDiv.classList.add('hidden');
-        }
-    });
 
     // Description editing event listeners
     document.getElementById('editDescriptionBtn').addEventListener('click', () => {
