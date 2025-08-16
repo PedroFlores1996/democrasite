@@ -58,18 +58,7 @@ docker-compose --profile postgres down
 - 🔒 Production-ready security configuration
 - ⚙️ SMTP configuration needed (see environment setup below)
 
-**Environment Setup for Production:**
-```bash
-# Copy the example environment file
-cp .env.example .env
-
-# Edit .env with your SMTP credentials
-# SMTP_USERNAME=your-email@gmail.com
-# SMTP_PASSWORD=your-app-password
-
-# Then run with environment file
-docker-compose --profile postgres --env-file .env up
-```
+> **📋 For Production Deployment**: See [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) for detailed setup, security configuration, troubleshooting, and deployment checklist.
 
 ### Local Development Only
 
